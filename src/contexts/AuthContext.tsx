@@ -24,21 +24,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const applySession = (nextSession: Session | null) => {
+      if (!isMounted) return;
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      setLoading(false);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+      (_event, nextSession) => {
+        applySession(nextSession);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        applySession(session);
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
 
-    return () => subscription.unsubscribe();
+    const safetyTimeout = window.setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 4000);
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

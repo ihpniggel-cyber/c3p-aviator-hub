@@ -21,6 +21,7 @@ const mainNav = [
   { title: "Bibliothèque", url: "/library", icon: BookOpen },
   { title: "Quiz & Tests", url: "/quizzes", icon: GraduationCap },
   { title: "Mon Profil", url: "/profile", icon: User },
+  { title: "Atterrissage 04", url: "/atterrissage", icon: Plane },
 ];
 
 export function AppSidebar() {

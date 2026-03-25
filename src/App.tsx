@@ -14,27 +14,26 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function FullscreenLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-10 h-10 rounded-lg bg-gradient-gold animate-pulse-gold" />
+    </div>
+  );
+}
+
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-10 h-10 rounded-lg bg-gradient-gold animate-pulse-gold" />
-      </div>
-    );
-  }
-
+  if (loading) return <FullscreenLoader />;
   if (!user) return <Navigate to="/auth" replace />;
 
-  return (
-    <AppLayout />
-  );
+  return <AppLayout />;
 }
 
 function AuthRoute() {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <FullscreenLoader />;
   if (user) return <Navigate to="/" replace />;
   return <AuthPage />;
 }

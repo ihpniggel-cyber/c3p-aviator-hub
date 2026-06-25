@@ -1,6 +1,6 @@
-import { useRef, useState, useEffect, useMemo, Suspense } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Text, OrbitControls, PerspectiveCamera } from "@react-three/drei";
+import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import * as THREE from "three";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -179,9 +179,6 @@ function Room() {
         <boxGeometry args={[3, 1.6, 0.08]} />
         <meshStandardMaterial color="#e2e8f0" />
       </mesh>
-      <Text position={[-3, 1.8, -5.8]} fontSize={0.14} color="#1e293b" anchorX="center" anchorY="middle" maxWidth={2.6}>
-        {"BRIEFING C3P\nQNH 1012 · Vent 080/08kt\nF-ONCF MAINT."}
-      </Text>
 
       {/* Table briefing */}
       <mesh position={[0, 0.42, -1.2]} castShadow>
@@ -312,18 +309,6 @@ function Character({ def, speakerId, targetId }: {
         <meshStandardMaterial color={def.hex} emissive={def.hex} emissiveIntensity={1} transparent opacity={0} />
       </mesh>
 
-      {/* Prénom (Text WebGL — pas de Html) */}
-      <Text
-        position={[0, 1.55, 0]}
-        fontSize={0.18}
-        color={def.hex}
-        anchorX="center"
-        anchorY="bottom"
-        outlineWidth={0.02}
-        outlineColor="#0f172a"
-      >
-        {def.short}
-      </Text>
     </group>
   );
 }
@@ -451,9 +436,7 @@ export default function OpsRoom3D() {
         <Canvas shadows dpr={[1, 1.5]} gl={{ antialias: true, powerPreference: "high-performance" }}>
           <PerspectiveCamera makeDefault position={[0, 11, 11]} fov={44} />
           <OrbitControls target={[0, 0, 0]} enablePan={false} minDistance={8} maxDistance={22} minPolarAngle={Math.PI/6} maxPolarAngle={Math.PI/2.2} />
-          <Suspense fallback={null}>
-            <Scene speakerId={speakerId} targetId={targetId} />
-          </Suspense>
+          <Scene speakerId={speakerId} targetId={targetId} />
         </Canvas>
 
         {beatIdx < 0 && (

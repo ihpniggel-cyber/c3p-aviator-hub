@@ -1,4 +1,4 @@
-import { BookOpen, LayoutDashboard, User, GraduationCap, Plane, Radio } from "lucide-react";
+import { BookOpen, LayoutDashboard, User, GraduationCap, Plane, Radio, Box } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -23,6 +23,7 @@ const mainNav = [
   { title: "Mon Profil", url: "/profile", icon: User },
   { title: "Atterrissage 04", url: "/atterrissage", icon: Plane },
   { title: "Salle des Ops", url: "/ops", icon: Radio },
+  { title: "Ops 3D", url: "/ops3d", icon: Box },
 ];
 
 export function AppSidebar() {

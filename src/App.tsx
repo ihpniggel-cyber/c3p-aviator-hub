@@ -12,6 +12,7 @@ import Quizzes from "@/pages/Quizzes";
 import Profile from "@/pages/Profile";
 import LandingAnimation from "@/pages/LandingAnimation";
 import OpsRoom from "@/pages/OpsRoom";
+import OpsRoom3D from "@/pages/OpsRoom3D";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/atterrissage" element={<LandingAnimation />} />
               <Route path="/ops" element={<OpsRoom />} />
+              <Route path="/ops3d" element={<OpsRoom3D />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

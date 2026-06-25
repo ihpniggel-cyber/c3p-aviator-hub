@@ -418,6 +418,34 @@ export default function OpsRoom3D() {
         ))}
       </div>
 
+      {/* Bouton Lancer principal */}
+      <div className="flex items-center gap-3">
+        <Button
+          size="lg"
+          className="gap-2 font-semibold"
+          onClick={() => {
+            if (done) { setBeatIdx(-1); setPlaying(true); }
+            else if (playing) setPlaying(false);
+            else { setBeatIdx(beatIdx < 0 ? 0 : beatIdx); setPlaying(true); }
+          }}
+        >
+          {done ? <><RotateCcw className="w-4 h-4" /> Rejouer</> :
+           playing ? <><Pause className="w-4 h-4" /> Pause</> :
+           <><Play className="w-4 h-4" />{beatIdx < 0 ? "▶ Lancer la scène" : "▶ Reprendre"}</>}
+        </Button>
+        <div className="flex gap-0.5 bg-card border border-border rounded-md p-0.5">
+          {([1, 2, 3] as const).map(v => (
+            <button key={v} onClick={() => setSpeed(v)}
+              className={`px-3 py-1.5 text-xs rounded transition-colors ${speed === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              {v === 1 ? "×1" : v === 2 ? "×2" : "×4"}
+            </button>
+          ))}
+        </div>
+        {beatIdx >= 0 && (
+          <span className="text-xs text-muted-foreground">{beatIdx + 1} / {scenario.beats.length}</span>
+        )}
+      </div>
+
       {/* Canvas 3D */}
       <div className="relative rounded-xl overflow-hidden border border-border bg-[#0a1628]" style={{ height: 520 }}>
         <Canvas shadows dpr={[1, 1.5]} gl={{ antialias: true, powerPreference: "high-performance" }}>
@@ -427,34 +455,6 @@ export default function OpsRoom3D() {
             <Scene speakerId={speakerId} targetId={targetId} />
           </Suspense>
         </Canvas>
-
-        {/* Contrôles */}
-        <div className="absolute top-3 right-3 flex items-center gap-2">
-          <div className="flex gap-0.5 bg-black/60 backdrop-blur rounded-md border border-white/10 p-0.5">
-            {([1, 2, 3] as const).map(v => (
-              <button key={v} onClick={() => setSpeed(v)}
-                className={`px-2 py-1 text-xs rounded transition-colors ${speed === v ? "bg-primary text-white" : "text-white/50 hover:text-white"}`}>
-                {v === 1 ? "×1" : v === 2 ? "×2" : "×4"}
-              </button>
-            ))}
-          </div>
-          <Button size="sm" variant={playing ? "outline" : "default"} className="h-7 text-xs gap-1 bg-black/60 backdrop-blur border-white/20 text-white hover:bg-black/80"
-            onClick={() => {
-              if (done) { setBeatIdx(-1); setPlaying(true); }
-              else if (playing) setPlaying(false);
-              else { if (beatIdx < 0) setBeatIdx(0); setPlaying(true); }
-            }}>
-            {done ? <><RotateCcw className="w-3 h-3" />Rejouer</> :
-             playing ? <><Pause className="w-3 h-3" />Pause</> :
-             <><Play className="w-3 h-3" />{beatIdx < 0 ? "Lancer" : "Reprendre"}</>}
-          </Button>
-        </div>
-
-        {beatIdx >= 0 && (
-          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur border border-white/10 rounded-md px-2 py-1 text-xs text-white/60">
-            {beatIdx + 1} / {scenario.beats.length}
-          </div>
-        )}
 
         {beatIdx < 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

@@ -422,7 +422,7 @@ export default function OpsRoom3D() {
       <div className="flex items-center gap-3">
         <Button
           size="lg"
-          className="gap-2 font-semibold"
+          className="gap-2 font-semibold bg-sky-500 hover:bg-sky-400 text-white border-0"
           onClick={() => {
             if (done) { setBeatIdx(-1); setPlaying(true); }
             else if (playing) setPlaying(false);

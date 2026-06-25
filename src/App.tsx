@@ -11,6 +11,7 @@ import Library from "@/pages/Library";
 import Quizzes from "@/pages/Quizzes";
 import Profile from "@/pages/Profile";
 import LandingAnimation from "@/pages/LandingAnimation";
+import OpsRoom from "@/pages/OpsRoom";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
               <Route path="/quizzes" element={<Quizzes />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/atterrissage" element={<LandingAnimation />} />
+              <Route path="/ops" element={<OpsRoom />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

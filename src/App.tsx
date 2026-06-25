@@ -46,7 +46,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename="/c3p-aviator-hub">
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<AuthRoute />} />

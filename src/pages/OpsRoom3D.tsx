@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Play, Pause, RotateCcw, Radio } from "lucide-react";
 
 interface CharDef {
@@ -136,65 +136,88 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
-// Dessin d'un bonhomme SVG avec animation walk
-function Bonhomme({ c, speaking, targeted, walkPhase }: {
-  c: CharDef; speaking: boolean; targeted: boolean; walkPhase: number;
+// Dessin d'un bonhomme — animations 100% SVG natif, pas de walkPhase state
+function Bonhomme({ c, speaking, targeted }: {
+  c: CharDef; speaking: boolean; targeted: boolean;
 }) {
-  const legSwing = speaking ? 0 : Math.sin(walkPhase) * 12;
-  const armSwing = Math.sin(walkPhase) * 10;
-  const bodyBob = speaking ? Math.abs(Math.sin(walkPhase * 2)) * 2 : 0;
+  // Durée du cycle de marche propre à chaque perso (évite la synchronisation)
+  const dur = `${0.7 + (c.baseX % 3) * 0.15}s`;
 
   return (
     <g>
       {/* Ombre */}
-      <ellipse cx="0" cy="42" rx="14" ry="4" fill="#000" opacity="0.2" />
+      <ellipse cx="0" cy="44" rx="14" ry="4" fill="#000" opacity="0.18" />
 
       {/* Anneau tournant si parle */}
       {speaking && <>
-        <circle cx="0" cy="10" r="30" fill="none" stroke={c.hex} strokeWidth="2.5" opacity="0.6" strokeDasharray="8 4">
-          <animateTransform attributeName="transform" type="rotate" from="0 0 10" to="360 0 10" dur="2s" repeatCount="indefinite" />
+        <circle cx="0" cy="10" r="30" fill="none" stroke={c.hex} strokeWidth="2.5" opacity="0.7" strokeDasharray="8 4">
+          <animateTransform attributeName="transform" type="rotate" from="0 0 10" to="360 0 10" dur="1.8s" repeatCount="indefinite" />
         </circle>
-        <circle cx="0" cy="10" r="24" fill={c.hex} opacity="0.08" />
+        <circle cx="0" cy="10" r="24" fill={c.hex} opacity="0.1">
+          <animate attributeName="opacity" values="0.05;0.15;0.05" dur="1.2s" repeatCount="indefinite" />
+        </circle>
       </>}
 
       {/* Ciblé */}
       {targeted && !speaking && (
-        <circle cx="0" cy="10" r="26" fill="none" stroke={c.hex} strokeWidth="1.5" opacity="0.35" strokeDasharray="5 5" />
+        <circle cx="0" cy="10" r="26" fill="none" stroke={c.hex} strokeWidth="1.5" opacity="0.4" strokeDasharray="5 5">
+          <animateTransform attributeName="transform" type="rotate" from="0 0 10" to="-360 0 10" dur="4s" repeatCount="indefinite" />
+        </circle>
       )}
 
-      {/* Jambes */}
-      <line x1="-5" y1={28 + bodyBob} x2={-8 + legSwing * 0.5} y2="42" stroke={c.hex} strokeWidth="4" strokeLinecap="round" />
-      <line x1="5" y1={28 + bodyBob} x2={8 - legSwing * 0.5} y2="42" stroke={c.hex} strokeWidth="4" strokeLinecap="round" />
+      {/* Jambe gauche — animée en SVG pur */}
+      <g transform="translate(-5, 28)">
+        <line x1="0" y1="0" x2="-4" y2="16" stroke={c.hex} strokeWidth="4" strokeLinecap="round">
+          <animateTransform attributeName="transform" type="rotate"
+            values="18 0 0;-18 0 0;18 0 0" dur={dur} repeatCount="indefinite" />
+        </line>
+      </g>
+      {/* Jambe droite */}
+      <g transform="translate(5, 28)">
+        <line x1="0" y1="0" x2="4" y2="16" stroke={c.hex} strokeWidth="4" strokeLinecap="round">
+          <animateTransform attributeName="transform" type="rotate"
+            values="-18 0 0;18 0 0;-18 0 0" dur={dur} repeatCount="indefinite" />
+        </line>
+      </g>
 
-      {/* Corps */}
-      <rect x="-9" y={12 + bodyBob} width="18" height="18" rx="5" fill={c.hex} />
+      {/* Corps — léger bob vertical */}
+      <g>
+        <animateTransform attributeName="transform" type="translate"
+          values="0,0;0,-2;0,0" dur={dur} repeatCount="indefinite" additive="sum" />
+        <rect x="-9" y="12" width="18" height="18" rx="5" fill={c.hex} />
 
-      {/* Bras */}
-      <line x1="-9" y1={18 + bodyBob} x2={-18 - armSwing * 0.5} y2={26 + bodyBob} stroke={c.hex} strokeWidth="3.5" strokeLinecap="round" />
-      <line x1="9" y1={18 + bodyBob} x2={18 + armSwing * 0.5} y2={26 + bodyBob} stroke={c.hex} strokeWidth="3.5" strokeLinecap="round" />
+        {/* Bras gauche */}
+        <g transform="translate(-9, 18)">
+          <line x1="0" y1="0" x2="-9" y2="9" stroke={c.hex} strokeWidth="3.5" strokeLinecap="round">
+            <animateTransform attributeName="transform" type="rotate"
+              values="-20 0 0;20 0 0;-20 0 0" dur={dur} repeatCount="indefinite" />
+          </line>
+        </g>
+        {/* Bras droit */}
+        <g transform="translate(9, 18)">
+          <line x1="0" y1="0" x2="9" y2="9" stroke={c.hex} strokeWidth="3.5" strokeLinecap="round">
+            <animateTransform attributeName="transform" type="rotate"
+              values="20 0 0;-20 0 0;20 0 0" dur={dur} repeatCount="indefinite" />
+          </line>
+        </g>
 
-      {/* Tête */}
-      <circle cx="0" cy={4 + bodyBob} r="10" fill={c.hex} />
+        {/* Tête */}
+        <circle cx="0" cy="4" r="10" fill={c.hex} />
+        <circle cx="-3.5" cy="3" r={speaking ? 2.5 : 1.8} fill="#0a1628" />
+        <circle cx="3.5" cy="3" r={speaking ? 2.5 : 1.8} fill="#0a1628" />
+        <circle cx="-2" cy="1.5" r="0.8" fill="white" opacity="0.7" />
+        <circle cx="5" cy="1.5" r="0.8" fill="white" opacity="0.7" />
+        {speaking
+          ? <path d="M -4 8 Q 0 12 4 8" stroke="#0a1628" strokeWidth="1.5" fill="none" />
+          : <line x1="-3" y1="8" x2="3" y2="8" stroke="#0a1628" strokeWidth="1.2" />}
 
-      {/* Yeux */}
-      <circle cx="-3.5" cy={3 + bodyBob} r={speaking ? 2.5 : 1.8} fill="#0a1628" />
-      <circle cx="3.5" cy={3 + bodyBob} r={speaking ? 2.5 : 1.8} fill="#0a1628" />
-      {/* Reflet yeux */}
-      <circle cx="-2" cy={1.5 + bodyBob} r="0.8" fill="white" opacity="0.6" />
-      <circle cx="5" cy={1.5 + bodyBob} r="0.8" fill="white" opacity="0.6" />
-
-      {/* Bouche */}
-      {speaking
-        ? <path d={`M -4 ${8 + bodyBob} Q 0 ${12 + bodyBob} 4 ${8 + bodyBob}`} stroke="#0a1628" strokeWidth="1.5" fill="none" />
-        : <line x1="-3" y1={8 + bodyBob} x2="3" y2={8 + bodyBob} stroke="#0a1628" strokeWidth="1.2" />
-      }
-
-      {/* Auréole FI */}
-      {c.role === "FI" && (
-        <ellipse cx="0" cy={-9 + bodyBob} rx="13" ry="3.5" fill="none" stroke="#f59e0b" strokeWidth="3">
-          <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" />
-        </ellipse>
-      )}
+        {/* Auréole FI */}
+        {c.role === "FI" && (
+          <ellipse cx="0" cy="-8" rx="13" ry="3.5" fill="none" stroke="#f59e0b" strokeWidth="3">
+            <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
+          </ellipse>
+        )}
+      </g>
 
       {/* Prénom */}
       <text y="56" textAnchor="middle" fontSize="9" fontWeight={speaking ? "bold" : "normal"}
@@ -240,13 +263,7 @@ export default function OpsRoom3D() {
   const [positions, setPositions] = useState<Record<string, Pos>>(() =>
     Object.fromEntries(CHARS.map(c => [c.id, { x: c.baseX, y: c.baseY }]))
   );
-  // Phase de marche par personnage
-  const [walkPhases, setWalkPhases] = useState<Record<string, number>>(() =>
-    Object.fromEntries(CHARS.map(c => [c.id, Math.random() * Math.PI * 2]))
-  );
-
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const walkTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const wanderTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const DELAY = { 1: 3200, 2: 1600, 3: 750 }[speed];
 
@@ -254,18 +271,6 @@ export default function OpsRoom3D() {
   const speakerId = beat?.characterId ?? "";
   const targetId = beat?.targetId ?? "";
   const done = beatIdx >= scenario.beats.length - 1;
-
-  // Animation de marche (phase)
-  useEffect(() => {
-    walkTimer.current = setInterval(() => {
-      setWalkPhases(prev => {
-        const next = { ...prev };
-        CHARS.forEach(c => { next[c.id] = (prev[c.id] + 0.35) % (Math.PI * 2); });
-        return next;
-      });
-    }, 80);
-    return () => { if (walkTimer.current) clearInterval(walkTimer.current); };
-  }, []);
 
   // Déambulation aléatoire des personnages non-actifs
   useEffect(() => {
@@ -498,13 +503,11 @@ export default function OpsRoom3D() {
             const py = (pos.y / 100) * 480;
             const speaking = c.id === speakerId;
             const targeted = c.id === targetId;
-            const wp = walkPhases[c.id] ?? 0;
             const flip = pos.x > 50;
             return (
               <g key={c.id}
-                style={{ transition: "transform 0.9s cubic-bezier(0.34,1.56,0.64,1)" }}
-                transform={`translate(${px}, ${py})`}>
-                <Bonhomme c={c} speaking={speaking} targeted={targeted} walkPhase={wp} />
+                style={{ transform: `translate(${px}px, ${py}px)`, transition: "transform 1s cubic-bezier(0.34,1.4,0.64,1)" }}>
+                <Bonhomme c={c} speaking={speaking} targeted={targeted} />
                 {/* Bulle de dialogue */}
                 {speaking && beat && beat.type !== "system" && (
                   <SpeechBubble text={beat.text} color={c.hex} flip={flip} />

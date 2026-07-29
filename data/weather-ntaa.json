@@ -1,7 +1,7 @@
 {
-  "updated_utc": "2026-07-29T13:21:30Z",
+  "updated_utc": "2026-07-29T15:24:31Z",
   "source": "metarcentral.com",
-  "metar_raw": "METAR NTAA 291300Z AUTO 06005KT 9999 FEW 019 25/21 Q1011 NOSIG",
+  "metar_raw": "METAR NTAA 291500Z AUTO 09005KT 9999 FEW 020 24/21 Q1011 NOSIG",
   "taf_raw": "TAF NTAA 291100Z 2912/3018 VRB05KT 9999 FEW025 TEMPO 2920/3002 02013KT",
   "notams": [
     {

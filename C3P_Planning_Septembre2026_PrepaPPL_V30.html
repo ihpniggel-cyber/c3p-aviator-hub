@@ -1147,7 +1147,7 @@ td.ops-plane { font-family: var(--font-display); font-weight:700; color: var(--c
 <tr><td class="num">V27</td><td class="mono">29/07/2026</td><td>Demande de « cristalliser » l'état du système après validation complète en conditions réelles, sur plusieurs échanges de mise en place et de dépannage côté GitHub (fichiers mal placés, traduction Chrome trompeuse, conflit de push corrigé par un `git pull --rebase`).</td><td>Aucun changement de code dans ce document — il pointait déjà vers `raw.githubusercontent.com/ihpniggel-cyber/c3p-aviator-hub/main/data/weather-ntaa.json` et savait déjà afficher le champ `desc_fr` depuis la V26 ; seule la version du <em>pipeline GitHub</em> (script + workflow, hors de ce fichier) a été corrigée entre-temps. Cette version marque le point de validation réel, confirmé sur les données publiées par Pascal : 22 NOTAM actifs correctement extraits (y compris A1522/25, les pylônes de la vallée de la Vaihiria, précédemment perdu par fusion avec le NOTAM voisin — bug corrigé en V26/V22bis), chacun avec sa traduction française et `desc_fr_error: null`. Limite assumée et documentée : la traduction automatique comporte des maladresses ponctuelles (ex. « SAME » pour samedi, casse incohérente en milieu de phrase sur deux ou trois occurrences) — sans conséquence sur le sens, mais c'est précisément pourquoi le texte anglais original reste affiché en premier et désigné comme faisant foi, la traduction n'étant qu'une aide à la lecture. Chaîne complète revérifiée bout en bout : MetarCentral → script Python (extraction + traduction avec cache) → GitHub Actions (toutes les 15 min) → `data/weather-ntaa.json` → ce document, sans blocage CORS à aucune étape.</td></tr>
 <tr><td class="num">V28</td><td class="mono">29/07/2026</td><td>Pascal trouve que le bloc NOTAM prend trop de place à l'écran ; demande de le cacher derrière un bouton, repliable/dépliable au clic.</td><td>Le bloc NOTAM (intro, liste, cartes) est maintenant dans un élément repliable natif (<code>&lt;details&gt;</code>), fermé par défaut — le bouton « 📋 NOTAMs » affiche un badge qui se met à jour dès que les données arrivent : le nombre total, et un décompte des NOTAM restrictifs VFR en rouge s'il y en a (ex. « 22 · ⚠️ 3 VFR »), visible même bloc replié, pour ne pas cacher l'information la plus critique derrière un clic. Un clic déplie, un second replie — comportement natif du navigateur, aucun JS de bascule à maintenir.</td></tr>
 <tr><td class="num">V29</td><td class="mono">29/07/2026</td><td>Demande d'accès facile au TEMSI et au WINTEM Polynésie. Recherche menée : pas d'accès public sans compte pour ces produits (Sofia-Briefing redirige lui-même vers AEROWEB depuis une panne datée du 12/07/2026 ; les cartes SIGWX gratuites sans compte existantes couvrent l'aviation commerciale haute altitude, pas l'équivalent local pertinent pour un vol VFR). Un mot de passe de test partagé par Pascal n'a pas été intégré au document, pour ne pas l'exposer en clair dans un dépôt GitHub public.</td><td>Bouton « 🗺️ AEROWEB — TEMSI / WINTEM » ajouté vers `aviation.meteo.fr/login.php`, avec une note expliquant qu'un compte gratuit est nécessaire (inscription en un clic sur la page) et que le navigateur peut mémoriser les identifiants pour les usages suivantes — pas de raccourci en un clic comme les autres liens de la section, mais pas de fausse promesse non plus.</td></tr>
-<tr><td class="num">V30</td><td class="mono">29/07/2026</td><td>Pascal souhaite que le bouton AEROWEB se connecte directement (identifiant et mot de passe "tahiti"), ouvre le dossier tahiti, puis navigue vers le sous-dossier WINTEM/TEMSI — sans aucune action manuelle.</td><td>Le lien AEROWEB est remplacé par un <code>&lt;button&gt;</code> qui : (1) ouvre une fenêtre nommée <code>aeroweb_win</code>, (2) y écrit et soumet automatiquement un formulaire POST vers <code>aviation.meteo.fr/login.php</code> avec les champs <code>identifiant=tahiti</code> et <code>motdepasse=tahiti</code>, (3) après 4 secondes (délai post-redirection serveur), navigue la fenêtre vers <code>/tahiti/WINTEM/</code>. Fallback : si le navigateur bloque les popups, le bouton ouvre simplement la page de login. Noms de champs du formulaire Aeroweb établis empiriquement ; si le site change ses champs, ajuster dans la fonction <code>openAeroweb()</code>.</td></tr>
+<tr><td class="num">V30</td><td class="mono">29/07/2026</td><td>Pascal fournit la séquence de navigation réelle : login.php → accueil.php#debut_page → clic "dossiers préférés : NTAA" (même URL, chargement AJAX) → téléchargement archive/YYYY-MM-DD/tahiti/pdv.*.pdf. Demande : zéro action manuelle après clic sur le bouton.</td><td>Bouton AEROWEB recodé : ouvre <code>aeroweb_win</code>, soumet POST login.php (<code>identifiant=tahiti</code>, <code>motdepasse=tahiti</code>), puis après 4 s navigue vers <code>archive/{date-tahiti}/tahiti/</code> — date calculée dynamiquement en UTC-10 pour coller à l'heure de Tahiti. Le listing de répertoire du serveur expose directement les PDFs du jour (WINTEM, TEMSI, PDV). URL corrigée par rapport à la V30 initiale qui pointait sur /tahiti/WINTEM/ (inexistant).</td></tr>
 </tbody>
 </table>
 </section>
@@ -2440,11 +2440,19 @@ document.addEventListener('DOMContentLoaded', function () {
     return { metarRaw: metarRaw, tafRaw: tafRaw };
   }
 
-  /* --- Auto-login Aeroweb + navigation tahiti/WINTEM --- */
+  /* --- Auto-login Aeroweb + navigation archive tahiti du jour --- */
   function openAeroweb() {
+    // Date du jour en heure de Tahiti (UTC-10)
+    var tahitiNow = new Date(Date.now() - 10 * 3600 * 1000);
+    var yyyy = tahitiNow.getUTCFullYear();
+    var mm   = String(tahitiNow.getUTCMonth() + 1).padStart(2, '0');
+    var dd   = String(tahitiNow.getUTCDate()).padStart(2, '0');
+    var dateStr    = yyyy + '-' + mm + '-' + dd;
+    var archiveUrl = 'https://aviation.meteo.fr/archive/' + dateStr + '/tahiti/';
+
     var win = window.open('', 'aeroweb_win');
     if (!win) {
-      // Popup bloqué : fallback lien simple
+      // Popup bloqué par le navigateur : fallback vers la page de login
       window.open('https://aviation.meteo.fr/login.php', '_blank');
       return;
     }
@@ -2453,10 +2461,12 @@ document.addEventListener('DOMContentLoaded', function () {
       + '<title>Connexion Aeroweb…</title>'
       + '<style>body{font-family:Arial,sans-serif;padding:2rem 2.5rem;color:#1B2A4A;}'
       + 'h2{margin:0 0 .8rem;font-size:1.1rem;}p{margin:.3rem 0;font-size:.95rem;}'
-      + '</style></head><body>'
+      + 'strong{color:#C8A951;}</style></head><body>'
       + '<h2>⏳ Connexion AEROWEB en cours…</h2>'
-      + '<p>Identification automatique : tahiti / tahiti</p>'
-      + '<p style="margin-top:1rem;font-size:.82rem;color:#4A4A4A;">La fenêtre va se rediriger vers le dossier WINTEM dans quelques secondes.</p>'
+      + '<p>Identification : tahiti / tahiti</p>'
+      + '<p style="margin-top:1rem;font-size:.85rem;color:#4A4A4A;">'
+      + 'Ouverture du dossier <strong>tahiti / ' + dateStr + '</strong> dans quelques secondes…'
+      + '</p>'
       + '<form id="af" method="post" action="https://aviation.meteo.fr/login.php">'
       + '<input type="hidden" name="identifiant" value="tahiti">'
       + '<input type="hidden" name="motdepasse" value="tahiti">'
@@ -2465,9 +2475,9 @@ document.addEventListener('DOMContentLoaded', function () {
       + '</body></html>'
     );
     win.document.close();
-    // Après la redirection post-login, naviguer vers dossier tahiti/WINTEM
+    // Cookie de session posé par login.php → aller directement sur l'archive du jour
     setTimeout(function () {
-      try { win.location.href = 'https://aviation.meteo.fr/tahiti/WINTEM/'; } catch (e) {}
+      try { win.location.href = archiveUrl; } catch (e) {}
     }, 4000);
   }
   var aerowebBtn = document.getElementById('aeroweb-btn');

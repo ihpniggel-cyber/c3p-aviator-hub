@@ -3,14 +3,20 @@ C3P - Récupération automatique METAR/TAF/NOTAM pour NTAA (Tahiti-Faa'a)
 Exécuté par GitHub Actions toutes les 15 minutes.
 Source : metarcentral.com (agrégateur public NOAA/NWS).
 Écrit data/weather-ntaa.json à la racine du dépôt.
+
+V2 : ajoute une traduction française de chaque NOTAM (champ "desc_fr"),
+avec mise en cache pour ne retraduire que les NOTAM nouveaux ou modifiés
+(le texte anglais original "desc" reste toujours présent et fait foi).
 """
 import json
 import os
 import re
+import time
 import urllib.request
 from datetime import datetime, timezone
 
 HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; C3P-Weather-Bot/1.0; +https://github.com/ihpniggel-cyber)'}
+OUTPUT_PATH = 'data/weather-ntaa.json'
 
 
 def fetch(url):
@@ -40,7 +46,7 @@ def extract_notams(text):
     pattern = re.compile(
         r'NOTAM:\s*([A-Za-z0-9]+/\d+)\s*\|\s*(?:Q-Code:\s*([A-Z]*)\s*\|\s*)?Priority:\s*(\d+).*?'
         r'(ACTIVE|UPCOMING[^E]*?)?\s*Effective From\s*(.*?)\s*Expires\s*(.*?)\s*'
-        r'NOTAM Description\s*(.*?)\s*THE FRENCH VERSION'
+        r'NOTAM Description\s*(.*?)(?:\s*THE FRENCH VERSION[^N]*|\s*(?=NOTAM:)|$)'
     )
     entries = []
     for m in pattern.finditer(text):
@@ -55,6 +61,48 @@ def extract_notams(text):
         })
         if len(entries) >= 30:
             break
+    return entries
+
+
+def load_previous_translations():
+    """Relit le fichier JSON déjà publié pour réutiliser les traductions déjà faites."""
+    cache = {}
+    try:
+        with open(OUTPUT_PATH, encoding='utf-8') as f:
+            previous = json.load(f)
+        for n in previous.get('notams', []):
+            if n.get('desc') and n.get('desc_fr'):
+                cache[(n['id'], n['desc'])] = n['desc_fr']
+    except Exception:
+        pass
+    return cache
+
+
+def translate_notams(entries):
+    """Traduit desc -> desc_fr, en réutilisant le cache pour les NOTAM inchangés."""
+    cache = load_previous_translations()
+    try:
+        from deep_translator import GoogleTranslator
+        translator = GoogleTranslator(source='en', target='fr')
+    except Exception as e:
+        for n in entries:
+            n['desc_fr'] = cache.get((n['id'], n['desc']))
+            n['desc_fr_error'] = None if n['desc_fr'] else ('module de traduction indisponible: ' + str(e))
+        return entries
+
+    for n in entries:
+        key = (n['id'], n['desc'])
+        if key in cache:
+            n['desc_fr'] = cache[key]
+            n['desc_fr_error'] = None
+            continue
+        try:
+            n['desc_fr'] = translator.translate(n['desc'])
+            n['desc_fr_error'] = None
+            time.sleep(0.6)
+        except Exception as e:
+            n['desc_fr'] = None
+            n['desc_fr_error'] = str(e)
     return entries
 
 
@@ -86,17 +134,18 @@ def main():
 
     try:
         notam_page = strip_tags(fetch('https://metarcentral.com/airport/NTAA/notam'))
-        result['notams'] = extract_notams(notam_page)
+        entries = extract_notams(notam_page)
+        result['notams'] = translate_notams(entries)
     except Exception as e:
         result['errors'].append('notam: ' + str(e))
 
     os.makedirs('data', exist_ok=True)
-    with open('data/weather-ntaa.json', 'w', encoding='utf-8') as f:
+    with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
 
     print('METAR:', result['metar_raw'])
     print('TAF:', result['taf_raw'])
-    print('NOTAMs:', len(result['notams']))
+    print('NOTAMs:', len(result['notams']), '- traduits:', sum(1 for n in result['notams'] if n.get('desc_fr')))
     if result['errors']:
         print('Erreurs:', result['errors'])
 

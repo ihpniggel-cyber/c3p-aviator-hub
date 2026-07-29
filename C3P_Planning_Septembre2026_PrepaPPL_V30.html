@@ -2465,7 +2465,7 @@ document.addEventListener('DOMContentLoaded', function () {
       + '<h2>⏳ Connexion AEROWEB en cours…</h2>'
       + '<p>Identification : tahiti / tahiti</p>'
       + '<p style="margin-top:1rem;font-size:.85rem;color:#4A4A4A;">'
-      + 'Ouverture du dossier <strong>tahiti / ' + dateStr + '</strong> dans quelques secondes…'
+      + 'Ouverture du tableau de bord AEROWEB dans quelques secondes — clique sur <strong>dossiers préférés : NTAA</strong>.'
       + '</p>'
       + '<form id="af" method="post" action="https://aviation.meteo.fr/login.php">'
       + '<input type="hidden" name="identifiant" value="tahiti">'
@@ -2475,9 +2475,9 @@ document.addEventListener('DOMContentLoaded', function () {
       + '</body></html>'
     );
     win.document.close();
-    // Cookie de session posé par login.php → aller directement sur l'archive du jour
+    // Cookie de session posé par login.php → aller sur le dashboard (archive/ interdit)
     setTimeout(function () {
-      try { win.location.href = archiveUrl; } catch (e) {}
+      try { win.location.href = 'https://aviation.meteo.fr/accueil.php#debut_page'; } catch (e) {}
     }, 4000);
   }
   var aerowebBtn = document.getElementById('aeroweb-btn');

@@ -1,177 +1,154 @@
-{
-  "updated_utc": "2026-07-29T06:33:33Z",
-  "source": "metarcentral.com",
-  "metar_raw": "METAR NTAA 290600Z AUTO 09003KT CAVOK 25/21 Q1012 NOSIG",
-  "taf_raw": "TAF NTAA 290500Z 2906/3012 VRB05KT 9999 FEW025 TEMPO 2920/3002 02013KT",
-  "notams": [
-    {
-      "id": "A1408/25",
-      "qcode": "",
-      "status": "active",
-      "effFrom": "Nov 7, 2025 21:52 UTC",
-      "expires": "Until Further Notice",
-      "desc": "REF AIP PAC-P AD2 NTAA AD 2.24 AERODROME CHARTS AD 2 NTAA ADC 01 RUNWAY VISUAL RANGES (RVR) ARE ALL DEFINED AT 800M."
-    },
-    {
-      "id": "A0996/26",
-      "qcode": "QPFCA",
-      "status": "active",
-      "effFrom": "Jul 24, 2026 17:00 UTC",
-      "expires": "Aug 5, 2026 05:00 UTC",
-      "desc": "TRAFFIC DISRUPTIONS ARE EXPECTED FOR FLIGHTS DEPARTING FROM NTAA DUE TO ATS CAPACITY LIMITATIONS. NO RESTRICTION ON ESSENTIAL FLIGHTS FOR THE PROTECTION OF PEOPLE AND PROPERTY (MEDEVAC AND SAR), INTERNATIONAL FLIGHTS AND STATE FLIGHTS. START-UP CLEARANCE FOR FLIGHTS DEPARTING FROM NTAA MAY BE DELAYED. VFR PATTERNS TRAINING, ACROBATIC AND IFR TRAINING FLIGHTS ARE FORBIDDEN : ON JULY 24, 25, 29, 30, 31 AND AUGUST 2, 3, 4 FROM 07H00 TO 08H00 LT, ON JULY 26 AND AUGUST 1, 5 FROM 15H30 LT TO 19H00 LT."
-    },
-    {
-      "id": "A0992/26",
-      "qcode": "QPFCA",
-      "status": "active",
-      "effFrom": "Jul 24, 2026 01:02 UTC",
-      "expires": "Aug 5, 2026 05:00 UTC",
-      "desc": "TRAFFIC DISRUPTIONS ARE EXPECTED FOR FLIGHTS DEPARTING FROM NTAA DUE TO ATS CAPACITY LIMITATIONS. NO RESTRICTION ON ESSENTIAL FLIGHTS FOR THE PROTECTION OF PEOPLE AND PROPERTY (MEDEVAC AND SAR), INTERNATIONAL FLIGHTS AND STATE FLIGHTS. START-UP CLEARANCE FOR FLIGHTS DEPARTING FROM NTAA MAY BE DELAYED. VFR PATTERNS TRAINING, ACROBATIC AND IFR TRAINING FLIGHTS ARE FORBIDDEN : ON JULY 11, 12, 18, 24, 25, 29, 30, 31 AND AUGUST 2, 3, 4 FROM 07H00 TO 08H00 LT, ON JULY 19, 26 AND AUGUST 1, 5 AFTER 15H30 LT"
-    },
-    {
-      "id": "A0938/26",
-      "qcode": "QPFCA",
-      "status": "active",
-      "effFrom": "Jul 10, 2026 01:16 UTC",
-      "expires": "Aug 5, 2026 05:00 UTC",
-      "desc": "TRAFFIC DISRUPTIONS ARE EXPECTED FOR FLIGHTS DEPARTING FROM NTAA DUE TO ATS CAPACITY LIMITATIONS. NO RESTRICTION ON ESSENTIAL FLIGHTS FOR THE PROTECTION OF PEOPLE AND PROPERTY (MEDEVAC AND SAR), INTERNATIONAL FLIGHTS AND STATE FLIGHTS. START-UP CLEARANCE FOR FLIGHTS DEPARTING FROM NTAA MAY BE DELAYED. VFR PATTERNS TRAINING, ACROBATIC AND IFR TRAINING FLIGHTS ARE FORBIDDEN : ON JULY 11, 12, 18, 24, 25, 27, 29, 30, 31 AND AUGUST 2, 3, 4 FM 07H00 TO 08H00 LT, ON JULY 19, 26 AND AUGUST 1, 5 AFTER 15H30 LT"
-    },
-    {
-      "id": "A0918/27",
-      "qcode": "QFAXX",
-      "status": "upcoming",
-      "effFrom": "Oct 31, 2027 15:00 UTC",
-      "expires": "Dec 6, 2027 06:00 UTC",
-      "desc": "DUE TO PEAK ACTIVITY AND LIMITED STAND AVAILABILITY, THE AIRPORT AUTHORITY SUSPENDS LANDING AND TAKE OFF OPERATIONS FOR : -NON-SCHEDULED FLIGHTS (CHARTER) -PRIVATE FLIGHTS DURING THE FOLLOWING TIMES (UTC): MON 1500-0600 TUE 1715-0959 WED 1500-0600 THU 1500-0400 FRI 1910-0600 SAT 1500-0959 SUN 1500-0600 THIS RESTRICTION DOES NOT APPLY TO : - SCHEDULED FLIGHTS - MEDEVAC FLIGHTS - IN EMERGENCY SITUATIONS - FLIGHTS PERFORMING MISSIONS OF PRIORITY RELATED TO SAFETY OR PUBLIC INTEREST - FLIGHTS HAVING OBTAINED PRIOR AUTHORIZATION FROM THE AIRPORT MANAGER."
-    },
-    {
-      "id": "A0917/27",
-      "qcode": "QFAXX",
-      "status": "upcoming",
-      "effFrom": "Jul 1, 2027 15:00 UTC",
-      "expires": "Oct 31, 2027 09:59 UTC",
-      "desc": "DUE TO PEAK ACTIVITY AND LIMITED STAND AVAILABILITY, THE AIRPORT AUTHORITY SUSPENDS LANDING AND TAKE OFF OPERATIONS FOR : - NON-SCHEDULED FLIGHTS (CHARTER) - PRIVATE FLIGHTS DURING THE FOLLOWING TIMES (UTC): MON 1500-0455 TUE 1740-0959 WED 1500-0455 THU 1500-0400 FRI 1740-0455 SAT 1500-0959 SUN 1500-0455 THIS RESTRICTION DOES NOT APPLY TO : - SCHEDULED FLIGHTS - MEDEVAC FLIGHTS - IN EMERGENCY SITUATIONS - FLIGHTS PERFORMING MISSIONS OF PRIORITY RELATED TO SAFETY OR PUBLIC INTEREST - FLIGHTS HAVING OBTAINED PRIOR AUTHORIZATION FROM THE AIRPORT MANAGER."
-    },
-    {
-      "id": "A0916/27",
-      "qcode": "QFAXX",
-      "status": "upcoming",
-      "effFrom": "Mar 28, 2027 15:00 UTC",
-      "expires": "Jul 1, 2027 04:55 UTC",
-      "desc": "DUE TO PEAK ACTIVITY AND LIMITED STAND AVAILABILITY, THE AIRPORT AUTHORITY SUSPENDS LANDING AND TAKE OFF OPERATIONS FOR : - NON-SCHEDULED FLIGHTS (CHARTER) - PRIVATE FLIGHTS DURING THE FOLLOWING TIMES (UTC): MON 1500-1900 AND 2210-0455 TUE 1740-0959 WED 1500-0455 THU 1500-1900 AND 2210-0400 FRI 1910-0455 SAT 1500-0959 SUN 1500-0455 THIS RESTRICTION DOES NOT APPLY TO : - SCHEDULED FLIGHTS - MEDEVAC FLIGHTS - IN EMERGENCY SITUATIONS - FLIGHTS PERFORMING MISSIONS OF PRIORITY RELATED TO SAFETY OR PUBLIC INTEREST - FLIGHTS HAVING OBTAINED PRIOR AUTHORIZATION FROM THE AIRPORT MANAGER."
-    },
-    {
-      "id": "A0990/26",
-      "qcode": "QLYAS",
-      "status": "active",
-      "effFrom": "Jul 28, 2026 09:00 UTC",
-      "expires": "Jul 28, 2026 14:00 UTC",
-      "desc": "SIERRA APRON LIGHTING U/S DUE TO MAINT. STAFF AND VEHICLES PRESENT. IN CONTINUOUS CONTACT WITH TWR ON 118.100 MHZ. 25 MIN WITHDRAWAL TIME AND LIGHTING RESTORATION."
-    },
-    {
-      "id": "A0965/26",
-      "qcode": "QLXAS",
-      "status": "active",
-      "effFrom": "Jul 23, 2026 08:00 UTC",
-      "expires": "Jul 23, 2026 14:00 UTC",
-      "desc": "LIGHTING U/S ON SIERRA PARKING . STAFF AND VEHICLES ON RWY. PERMANENT CONTACT WITH TWR ON 118.100MHZ. VACATING TIME: 25 MIN WITH REACTIVATION OF THE SIERRA PARKING AREA LIGHTING."
-    },
-    {
-      "id": "A0988/26",
-      "qcode": "QFWAS",
-      "status": "active",
-      "effFrom": "Jul 22, 2026 20:36 UTC",
-      "expires": "Aug 3, 2026 09:59 UTC",
-      "desc": "WINDSOCK THR 12 NOT AVBL"
-    },
-    {
-      "id": "A0964/26",
-      "qcode": "QMWHW",
-      "status": "active",
-      "effFrom": "Jul 21, 2026 09:30 UTC",
-      "expires": "Jul 25, 2026 18:00 UTC",
-      "desc": "MOWING WORKS ON NORTH AND SOUTH STRIPS BETWEEN THR RWY 22 AND THR RWY 04. MOWER IN CONTINUOUS CONTACT WITH TWR. VACATING TIME: 15 MIN."
-    },
-    {
-      "id": "A0962/26",
-      "qcode": "QLXAS",
-      "status": "active",
-      "effFrom": "Jul 21, 2026 08:00 UTC",
-      "expires": "Jul 21, 2026 14:00 UTC",
-      "desc": "LIGHTING U/S ON SIERRA PARKING . STAFF AND VEHICLES ON RWY. PERMANENT CONTACT WITH TWR ON 118.100MHZ. VACATING TIME: 25 MIN."
-    },
-    {
-      "id": "A0959/26",
-      "qcode": "QFFLT",
-      "status": "active",
-      "effFrom": "Jul 16, 2026 00:02 UTC",
-      "expires": "Jul 23, 2026 02:00 UTC",
-      "desc": "RFFS NAUTICAL RESCUE BOAT NOT AVAILABLE."
-    },
-    {
-      "id": "A0932/26",
-      "qcode": "QWZLW",
-      "status": "active",
-      "effFrom": "Jul 15, 2026 05:30 UTC",
-      "expires": "Jul 15, 2026 06:45 UTC",
-      "desc": "FIREWORKS FROM FUNFAIR AT VAITUPA PSN : 17 37 29 S 149 36 47 W 1.83NM BEFORE THRESHOLD 04 AND 3.25NM ABEAM SOUTH OF RWY CENTERLINE DURATION : 10 MINUTES INFO : TAHITI TWR 118.1 MHZ"
-    },
-    {
-      "id": "A0919/26",
-      "qcode": "QMKHW",
-      "status": "active",
-      "effFrom": "Jul 13, 2026 18:00 UTC",
-      "expires": "Jul 14, 2026 03:00 UTC",
-      "desc": "CANAL DREDGING WORK FROM EAST OF TWY GOLF TO ATN HANGAR - WORK PROGRAMMED OUTSIDE OF HEAVY-WEIGHT MOUVEMENTS - PRESENCE OF A DREDGER WITH A 14-METER LONG ARM AND A TRUCK - IN PERMANENT RADIO CONTACT WITH TWR - FALL-BACK DELAY: 10 MINUTES"
-    },
-    {
-      "id": "A0951/26",
-      "qcode": "QFFLT",
-      "status": "active",
-      "effFrom": "Jul 12, 2026 23:43 UTC",
-      "expires": "Jul 16, 2026 02:00 UTC",
-      "desc": "RFFS NAUTICAL RESCUE BOAT NOT AVAILABLE"
-    },
-    {
-      "id": "A1460/25",
-      "qcode": "QFAXX",
-      "status": "active",
-      "effFrom": "Feb 4, 2026 14:00 UTC",
-      "expires": "Jun 1, 2026 20:00 UTC",
-      "desc": "DUE TO AIRPORT OPERATION CONGESTIONS, THE AIRPORT AUTHORITY SUSPENDS LANDING AND TAKE OFF OPERATIONS FOR NON SCHEDULED FLIGHTS (CHARTER AND PRIVATE) OF AIRCRAFT NOT BASED IN FRENCH POLYNESIA EXCEPT BY AIRPORT MANAGER AGREEMENT, DURING THE FOLLOWING SLOTS (UTC): MON : 1400-2000 WED : 0600-1000 AND 1400-2000 FRI : 0600-1000 SAT : 1400-2000 SUN : 0600-1000"
-    },
-    {
-      "id": "A1676/25",
-      "qcode": "QFAXX",
-      "status": "active",
-      "effFrom": "Jan 7, 2026 04:00 UTC",
-      "expires": "Apr 6, 2026 18:00 UTC",
-      "desc": "NTAA DIVERSION RESTRICTIONS DUE TO PEAK ACTIVITY, ONLY AIRCRAFT BASED IN FRENCH POLYNESIA OR PREVIOUSLY SCHEDULED FOR DEPARTURE OR ARRIVAL AT NTAA MAY FILE NTAA AS A DIVERSION AERODROME DURING THE SLOTS MENTIONED BELOW. THE RESTRICTION DOES NOT APPLY TO MEDICAL EVACUATION (MEDEVAC). PRIOR AUTHORIZATION REQUIRED FROM AIRPORT AUTHORITY FOR OTHER CASES. MON : 1400-1900 TUE : 0700-1000 WED : 0400-1000 AND 1600-1900 SAT : 1500-1800 SUN : 0700-1000"
-    },
-    {
-      "id": "A1658/25",
-      "qcode": "QOBCE",
-      "status": "active",
-      "effFrom": "Jan 1, 2026 16:30 UTC",
-      "expires": "Apr 2, 2026 02:00 UTC",
-      "desc": "PRESENCE OF CRANE AT THE NAVAL BASE PSN : 173152.0S 1493426.8W MAX OBST HEIGHT : 133FT ELEV : 143FT LIGHTING : NIL FROM SFC TO 143FT AMSL CRANE JIB WILL BE LOWERED ON WEEK-ENDS AND PUBLIC HOLIDAYS"
-    },
-    {
-      "id": "A1562/25",
-      "qcode": "QFAXX",
-      "status": "active",
-      "effFrom": "Dec 5, 2025 20:47 UTC",
-      "expires": "Until Further Notice",
-      "desc": "REF AIP PAC-P AD 2 NTAA.4.2: DELETE: FUEL: 100/130 (ACB, PRIVATE) O/R BY ARRANGEMENT WITH AEROCLUB UTA, TEL (689) 87 21 51 40 Obstacle - crane/equipment NOTAM: A1522/25 | Q-Code: QOBCE | Priority: 5 AD NOTAM Airport/Aerodrome NTAA Effective From Dec 1, 2025 17:57 UTC Expires May 1, 2026 20:03 UTC NOTAM Description PRESENCE OF THREE UNMARKED PYLONS IN THE VAIHIRIA LAKE VALLEY, WITH A MAXIMUM HEIGHT OF 40 METERS AND CONNECTED BY A CABLE. PYLON 1: POSITION :174118S1492507W ALT: 320 METERS PYLON 2: POSITION: 174114S1492510W ALT: 401 METERS PYLON 3: POSITION: 174108S1492513W ALT: 471 METERS"
-    },
-    {
-      "id": "A1410/25",
-      "qcode": "",
-      "status": "active",
-      "effFrom": "Nov 7, 2025 23:11 UTC",
-      "expires": "Until Further Notice",
-      "desc": "REF AIP PAC-P AD2 NTAA AD 2.8 APRON AREAS, TAXIWAYS AND INSPECTION POSITIONS TWY WIDTH: TWY S: 32M."
+"""
+C3P - Récupération automatique METAR/TAF/NOTAM pour NTAA (Tahiti-Faa'a)
+Exécuté par GitHub Actions toutes les 15 minutes.
+Source : metarcentral.com (agrégateur public NOAA/NWS).
+Écrit data/weather-ntaa.json à la racine du dépôt.
+
+V2 : ajoute une traduction française de chaque NOTAM (champ "desc_fr"),
+avec mise en cache pour ne retraduire que les NOTAM nouveaux ou modifiés
+(le texte anglais original "desc" reste toujours présent et fait foi).
+"""
+import json
+import os
+import re
+import time
+import urllib.request
+from datetime import datetime, timezone
+
+HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; C3P-Weather-Bot/1.0; +https://github.com/ihpniggel-cyber)'}
+OUTPUT_PATH = 'data/weather-ntaa.json'
+
+
+def fetch(url):
+    req = urllib.request.Request(url, headers=HEADERS)
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return r.read().decode('utf-8', errors='replace')
+
+
+def strip_tags(html):
+    text = re.sub(r'<[^>]*>', ' ', html)
+    text = text.replace('&amp;', '&')
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+
+def extract_metar(text):
+    m = re.search(r'METAR\s+NTAA\s+\d{6}Z.*?(?=\s(?:Clouds|Weather Briefing))', text)
+    return m.group(0).strip() if m else None
+
+
+def extract_taf(text):
+    m = re.search(r'TAF\s+NTAA\s+\d{6}Z.*?(?=\s(?:Detailed TAF Table|Forecast Periods|Upcoming Changes))', text)
+    return m.group(0).strip() if m else None
+
+
+def extract_notams(text):
+    pattern = re.compile(
+        r'NOTAM:\s*([A-Za-z0-9]+/\d+)\s*\|\s*(?:Q-Code:\s*([A-Z]*)\s*\|\s*)?Priority:\s*(\d+).*?'
+        r'(ACTIVE|UPCOMING[^E]*?)?\s*Effective From\s*(.*?)\s*Expires\s*(.*?)\s*'
+        r'NOTAM Description\s*(.*?)(?:\s*THE FRENCH VERSION[^N]*|\s*(?=NOTAM:)|$)'
+    )
+    entries = []
+    for m in pattern.finditer(text):
+        status = 'upcoming' if (m.group(4) or '').startswith('UPCOMING') else 'active'
+        entries.append({
+            'id': m.group(1),
+            'qcode': m.group(2) or '',
+            'status': status,
+            'effFrom': m.group(5).strip(),
+            'expires': m.group(6).strip(),
+            'desc': m.group(7).strip(),
+        })
+        if len(entries) >= 30:
+            break
+    return entries
+
+
+def load_previous_translations():
+    """Relit le fichier JSON déjà publié pour réutiliser les traductions déjà faites."""
+    cache = {}
+    try:
+        with open(OUTPUT_PATH, encoding='utf-8') as f:
+            previous = json.load(f)
+        for n in previous.get('notams', []):
+            if n.get('desc') and n.get('desc_fr'):
+                cache[(n['id'], n['desc'])] = n['desc_fr']
+    except Exception:
+        pass
+    return cache
+
+
+def translate_notams(entries):
+    """Traduit desc -> desc_fr, en réutilisant le cache pour les NOTAM inchangés."""
+    cache = load_previous_translations()
+    try:
+        from deep_translator import GoogleTranslator
+        translator = GoogleTranslator(source='en', target='fr')
+    except Exception as e:
+        for n in entries:
+            n['desc_fr'] = cache.get((n['id'], n['desc']))
+            n['desc_fr_error'] = None if n['desc_fr'] else ('module de traduction indisponible: ' + str(e))
+        return entries
+
+    for n in entries:
+        key = (n['id'], n['desc'])
+        if key in cache:
+            n['desc_fr'] = cache[key]
+            n['desc_fr_error'] = None
+            continue
+        try:
+            n['desc_fr'] = translator.translate(n['desc'])
+            n['desc_fr_error'] = None
+            time.sleep(0.6)
+        except Exception as e:
+            n['desc_fr'] = None
+            n['desc_fr_error'] = str(e)
+    return entries
+
+
+def main():
+    result = {
+        'updated_utc': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'source': 'metarcentral.com',
+        'metar_raw': None,
+        'taf_raw': None,
+        'notams': [],
+        'errors': []
     }
-  ],
-  "errors": []
-}
+
+    try:
+        metar_page = strip_tags(fetch('https://metarcentral.com/airport/NTAA'))
+        result['metar_raw'] = extract_metar(metar_page)
+        if not result['metar_raw']:
+            result['errors'].append('metar: motif non trouvé dans la page (structure du site a peut-être changé)')
+    except Exception as e:
+        result['errors'].append('metar: ' + str(e))
+
+    try:
+        taf_page = strip_tags(fetch('https://metarcentral.com/airport/NTAA/taf'))
+        result['taf_raw'] = extract_taf(taf_page)
+        if not result['taf_raw']:
+            result['errors'].append('taf: motif non trouvé dans la page (structure du site a peut-être changé)')
+    except Exception as e:
+        result['errors'].append('taf: ' + str(e))
+
+    try:
+        notam_page = strip_tags(fetch('https://metarcentral.com/airport/NTAA/notam'))
+        entries = extract_notams(notam_page)
+        result['notams'] = translate_notams(entries)
+    except Exception as e:
+        result['errors'].append('notam: ' + str(e))
+
+    os.makedirs('data', exist_ok=True)
+    with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+
+    print('METAR:', result['metar_raw'])
+    print('TAF:', result['taf_raw'])
+    print('NOTAMs:', len(result['notams']), '- traduits:', sum(1 for n in result['notams'] if n.get('desc_fr')))
+    if result['errors']:
+        print('Erreurs:', result['errors'])
+
+
+if __name__ == '__main__':
+    main()

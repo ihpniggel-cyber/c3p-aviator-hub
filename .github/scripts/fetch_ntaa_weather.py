@@ -170,13 +170,15 @@ def fetch_aeroweb_ntaa():
             }}""")
 
             # — Étape 3 : extraction des liens PDF —
+            # Aeroweb peut servir les PDFs via .pdf direct OU via des scripts PHP
             pdf_urls = list(dict.fromkeys(
                 re.findall(r'(?:href|src)=["\']([^"\']*\.pdf)["\']', dossier_html)
+                + re.findall(r'(?:href|src)=["\']([^"\']*(?:get_document|affiche_document|telecharg)[^"\']*)["\']', dossier_html)
             ))
 
             if not pdf_urls:
                 result['error'] = f'Aucun PDF trouvé dans le dossier (réponse {len(dossier_html)} o)'
-                result['debug_html'] = dossier_html[:800]
+                result['debug_html'] = dossier_html  # HTML complet pour diagnostic
                 browser.close()
                 return result
 

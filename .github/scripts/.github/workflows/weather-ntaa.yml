@@ -1,0 +1,32 @@
+name: Météo NTAA (MetarCentral)
+
+"on":
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update-weather:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Récupérer et parser le METAR/TAF/NOTAM de NTAA
+        run: python3 .github/scripts/fetch_ntaa_weather.py
+
+      - name: Publier si le fichier a changé
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/weather-ntaa.json
+          git diff --staged --quiet || git commit -m "Mise à jour météo NTAA (auto)"
+          git push

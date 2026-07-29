@@ -132,41 +132,24 @@ def fetch_aeroweb_ntaa():
                       wait_until='domcontentloaded')
             page.wait_for_timeout(2000)  # JS rendering
 
-            # Sélecteurs en ordre de priorité (au cas où les attributs diffèrent)
-            ID_SELS  = ['input[name="identifiant"]', '#identifiant',
-                        'input[id="identifiant"]', 'input[type="text"]']
-            PWD_SELS = ['input[name="motdepasse"]', '#motdepasse',
-                        'input[id="motdepasse"]', 'input[type="password"]']
-            BTN_SELS = ['input[type="submit"]', 'button[type="submit"]', 'button']
-
-            filled = False
-            for id_sel, pwd_sel, btn_sel in zip(ID_SELS, PWD_SELS, BTN_SELS):
-                try:
-                    page.locator(id_sel).first.fill('tahiti', timeout=4000)
-                    page.locator(pwd_sel).first.fill('tahiti', timeout=4000)
-                    page.locator(btn_sel).first.click(timeout=4000)
-                    filled = True
-                    break
-                except Exception:
-                    continue
-
-            if not filled:
-                result['error'] = (
-                    f'Formulaire login non trouvé (URL: {page.url}, '
-                    f'titre: {page.title()})'
-                )
-                result['debug_html'] = page.content()[:1200]
-                browser.close()
-                return result
-
-            page.wait_for_load_state('networkidle', timeout=15000)
+            # Champs réels : id="login" et id="password"
+            # Le mot de passe est hashé MD5 côté JS par valid() — Playwright l'exécute.
+            page.locator('#login').fill('tahiti', timeout=8000)
+            page.locator('#password').fill('tahiti', timeout=8000)
+            # Le bouton appelle valid() qui envoie AJAX + redirige vers accueil.php
+            page.locator('input[type="submit"], button[type="submit"], button').first.click(timeout=5000)
+            # Attendre la navigation post-AJAX vers accueil.php
+            try:
+                page.wait_for_url('**/accueil**', timeout=15000)
+            except Exception:
+                page.wait_for_load_state('networkidle', timeout=10000)
 
             if 'accueil' not in page.url:
                 result['error'] = (
                     f'Authentification échouée (URL: {page.url}, '
                     f'titre: {page.title()})'
                 )
-                result['debug_html'] = page.content()[:800]
+                result['debug_html'] = page.content()[:2000]
                 browser.close()
                 return result
 

@@ -2440,45 +2440,25 @@ document.addEventListener('DOMContentLoaded', function () {
     return { metarRaw: metarRaw, tafRaw: tafRaw };
   }
 
-  /* --- Auto-login Aeroweb + navigation archive tahiti du jour --- */
+  /* --- Auto-login Aeroweb via form target=_blank (non bloqué par popup blocker) --- */
   function openAeroweb() {
-    // Date du jour en heure de Tahiti (UTC-10)
-    var tahitiNow = new Date(Date.now() - 10 * 3600 * 1000);
-    var yyyy = tahitiNow.getUTCFullYear();
-    var mm   = String(tahitiNow.getUTCMonth() + 1).padStart(2, '0');
-    var dd   = String(tahitiNow.getUTCDate()).padStart(2, '0');
-    var dateStr    = yyyy + '-' + mm + '-' + dd;
-    var archiveUrl = 'https://aviation.meteo.fr/archive/' + dateStr + '/tahiti/';
-
-    var win = window.open('', 'aeroweb_win');
-    if (!win) {
-      // Popup bloqué par le navigateur : fallback vers la page de login
-      window.open('https://aviation.meteo.fr/login.php', '_blank');
-      return;
-    }
-    win.document.write(
-      '<!DOCTYPE html><html><head><meta charset="UTF-8">'
-      + '<title>Connexion Aeroweb…</title>'
-      + '<style>body{font-family:Arial,sans-serif;padding:2rem 2.5rem;color:#1B2A4A;}'
-      + 'h2{margin:0 0 .8rem;font-size:1.1rem;}p{margin:.3rem 0;font-size:.95rem;}'
-      + 'strong{color:#C8A951;}</style></head><body>'
-      + '<h2>⏳ Connexion AEROWEB en cours…</h2>'
-      + '<p>Identification : tahiti / tahiti</p>'
-      + '<p style="margin-top:1rem;font-size:.85rem;color:#4A4A4A;">'
-      + 'Ouverture du tableau de bord AEROWEB dans quelques secondes — clique sur <strong>dossiers préférés : NTAA</strong>.'
-      + '</p>'
-      + '<form id="af" method="post" action="https://aviation.meteo.fr/login.php">'
-      + '<input type="hidden" name="identifiant" value="tahiti">'
-      + '<input type="hidden" name="motdepasse" value="tahiti">'
-      + '</form>'
-      + '<script>document.getElementById("af").submit();<\/script>'
-      + '</body></html>'
-    );
-    win.document.close();
-    // Cookie de session posé par login.php → aller sur le dashboard (archive/ interdit)
-    setTimeout(function () {
-      try { win.location.href = 'https://aviation.meteo.fr/accueil.php#debut_page'; } catch (e) {}
-    }, 4000);
+    var form = document.createElement('form');
+    form.method  = 'post';
+    form.action  = 'https://aviation.meteo.fr/login.php';
+    form.target  = '_blank';
+    form.rel     = 'noopener';
+    form.style.display = 'none';
+    var fields = { identifiant: 'tahiti', motdepasse: 'tahiti' };
+    Object.keys(fields).forEach(function (name) {
+      var inp = document.createElement('input');
+      inp.type  = 'hidden';
+      inp.name  = name;
+      inp.value = fields[name];
+      form.appendChild(inp);
+    });
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
   }
   var aerowebBtn = document.getElementById('aeroweb-btn');
   if (aerowebBtn) aerowebBtn.addEventListener('click', openAeroweb);

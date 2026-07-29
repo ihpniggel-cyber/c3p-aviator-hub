@@ -128,15 +128,45 @@ def fetch_aeroweb_ntaa():
             page = ctx.new_page()
 
             # — Étape 1 : login —
-            page.goto('https://aviation.meteo.fr/login.php', timeout=30000)
-            page.wait_for_load_state('networkidle', timeout=15000)
-            page.locator('input[name="identifiant"]').fill('tahiti')
-            page.locator('input[name="motdepasse"]').fill('tahiti')
-            page.locator('input[type="submit"], button[type="submit"]').first.click()
+            page.goto('https://aviation.meteo.fr/login.php', timeout=30000,
+                      wait_until='domcontentloaded')
+            page.wait_for_timeout(2000)  # JS rendering
+
+            # Sélecteurs en ordre de priorité (au cas où les attributs diffèrent)
+            ID_SELS  = ['input[name="identifiant"]', '#identifiant',
+                        'input[id="identifiant"]', 'input[type="text"]']
+            PWD_SELS = ['input[name="motdepasse"]', '#motdepasse',
+                        'input[id="motdepasse"]', 'input[type="password"]']
+            BTN_SELS = ['input[type="submit"]', 'button[type="submit"]', 'button']
+
+            filled = False
+            for id_sel, pwd_sel, btn_sel in zip(ID_SELS, PWD_SELS, BTN_SELS):
+                try:
+                    page.locator(id_sel).first.fill('tahiti', timeout=4000)
+                    page.locator(pwd_sel).first.fill('tahiti', timeout=4000)
+                    page.locator(btn_sel).first.click(timeout=4000)
+                    filled = True
+                    break
+                except Exception:
+                    continue
+
+            if not filled:
+                result['error'] = (
+                    f'Formulaire login non trouvé (URL: {page.url}, '
+                    f'titre: {page.title()})'
+                )
+                result['debug_html'] = page.content()[:1200]
+                browser.close()
+                return result
+
             page.wait_for_load_state('networkidle', timeout=15000)
 
             if 'accueil' not in page.url:
-                result['error'] = f'Authentification échouée (URL finale : {page.url})'
+                result['error'] = (
+                    f'Authentification échouée (URL: {page.url}, '
+                    f'titre: {page.title()})'
+                )
+                result['debug_html'] = page.content()[:800]
                 browser.close()
                 return result
 

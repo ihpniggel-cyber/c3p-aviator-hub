@@ -1,8 +1,8 @@
 {
-  "updated_utc": "2026-07-29T17:56:04Z",
+  "updated_utc": "2026-07-29T18:58:25Z",
   "source": "metarcentral.com",
-  "metar_raw": "METAR NTAA 291730Z AUTO 06004KT 030V090 9999 FEW 020 26/22 Q1013 NOSIG",
-  "taf_raw": "TAF NTAA 291100Z 2912/3018 VRB05KT 9999 FEW025 TEMPO 2920/3002 02013KT",
+  "metar_raw": "METAR NTAA 291830Z AUTO 03005KT 010V070 CAVOK 28/22 Q1013 NOSIG",
+  "taf_raw": "TAF NTAA 291700Z 2918/3024 04006KT 9999 FEW020 BECMG 3004/3005 VRB04KT BECMG 3012/3014 SCT018 BKN040 BECMG 3016/3018 18016KT PROB40 TEMPO 3018/3024 20018G28KT 3000 SHRA BKN014TCU OVC035",
   "notams": [
     {
       "id": "A1408/25",
@@ -75,6 +75,16 @@
       "desc_fr_error": null
     },
     {
+      "id": "A1025/26",
+      "qcode": "QMXLC",
+      "status": "active",
+      "effFrom": "Jul 29, 2026 18:28 UTC",
+      "expires": "Jul 30, 2026 01:00 UTC",
+      "desc": "TWY B1, TWY LIMA AND B1 NOT AVAILABLE",
+      "desc_fr": "TWY B1, TWY LIMA ET B1 NON DISPONIBLES",
+      "desc_fr_error": null
+    },
+    {
       "id": "A0990/26",
       "qcode": "QLYAS",
       "status": "active",
@@ -92,16 +102,6 @@
       "expires": "Jul 23, 2026 14:00 UTC",
       "desc": "LIGHTING U/S ON SIERRA PARKING . STAFF AND VEHICLES ON RWY. PERMANENT CONTACT WITH TWR ON 118.100MHZ. VACATING TIME: 25 MIN WITH REACTIVATION OF THE SIERRA PARKING AREA LIGHTING.",
       "desc_fr": "ÉCLAIRAGE U/S SUR PARKING SIERRA . PERSONNEL ET VÉHICULES SUR RWY. CONTACT PERMANENT AVEC TWR SUR 118.100MHZ. TEMPS DE VACANCES : 25 MIN AVEC RÉACTIVATION DE L'ÉCLAIRAGE DU PARKING SIERRA.",
-      "desc_fr_error": null
-    },
-    {
-      "id": "A0988/26",
-      "qcode": "QFWAS",
-      "status": "active",
-      "effFrom": "Jul 22, 2026 20:36 UTC",
-      "expires": "Aug 3, 2026 09:59 UTC",
-      "desc": "WINDSOCK THR 12 NOT AVBL",
-      "desc_fr": "WINDSOCK THR 12 NON AVBL",
       "desc_fr_error": null
     },
     {
@@ -225,5 +225,10 @@
       "desc_fr_error": null
     }
   ],
+  "aeroweb_ntaa": {
+    "updated_utc": "2026-07-29T18:58:35Z",
+    "produits": [],
+    "error": "Locator.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"input[name=\\\"identifiant\\\"]\")\n"
+  },
   "errors": []
 }

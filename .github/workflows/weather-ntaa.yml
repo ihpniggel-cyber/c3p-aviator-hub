@@ -20,6 +20,9 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Installer les dépendances (traduction NOTAM)
+        run: pip install deep-translator
+
       - name: Récupérer et parser le METAR/TAF/NOTAM de NTAA
         run: python3 .github/scripts/fetch_ntaa_weather.py
 

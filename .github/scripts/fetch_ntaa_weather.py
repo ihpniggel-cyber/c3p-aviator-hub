@@ -6,12 +6,10 @@ Source PDFs : aviation.meteo.fr (Aeroweb — authentification tahiti/tahiti).
 Écrit data/weather-ntaa.json à la racine du dépôt.
 """
 import base64
-import http.cookiejar
 import json
 import os
 import re
 import time
-import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
@@ -112,136 +110,97 @@ def translate_notams(entries):
 
 def fetch_aeroweb_ntaa():
     """
-    Authentification Aeroweb (tahiti/tahiti) + récupération des PDFs TEMSI/WINTEM NTAA.
-    Séquence complète : GET login → POST creds → GET accueil → GET dossier AJAX → DL PDFs.
-    Retourne {updated_utc, produits:[{libelle,type,url,pdf_b64,size_kb}], error}.
+    Récupération PDFs TEMSI/WINTEM Aeroweb via navigateur headless Playwright/Chromium.
+    Le fetch AJAX est exécuté depuis le contexte JS de la page (cookies session inclus
+    automatiquement, pas de CORS, pas de CSRF à extraire manuellement).
     """
     result = {
         'updated_utc': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         'produits': [],
         'error': None
     }
-
-    BH = {  # headers navigateur réalistes pour ne pas être bloqué comme bot
-        'User-Agent': (
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-            'AppleWebKit/537.36 (KHTML, like Gecko) '
-            'Chrome/125.0.0.0 Safari/537.36'
-        ),
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-    }
-
     try:
-        jar = http.cookiejar.CookieJar()
-        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+        from playwright.sync_api import sync_playwright
 
-        # — Étape 0 : GET page login (cookies initiaux + tokens CSRF éventuels) —
-        with opener.open(
-            urllib.request.Request(AEROWEB_LOGIN_URL, headers=BH), timeout=30
-        ) as r:
-            login_page = r.read().decode('utf-8', errors='replace')
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=True)
+            ctx = browser.new_context(locale='fr-FR')
+            page = ctx.new_page()
 
-        # Extraire tous les champs <input type="hidden"> du formulaire
-        hidden = {}
-        for tag in re.findall(r'<input[^>]+>', login_page, re.IGNORECASE):
-            t = re.search(r'type=["\']([^"\']*)["\']', tag, re.IGNORECASE)
-            n = re.search(r'name=["\']([^"\']*)["\']', tag, re.IGNORECASE)
-            v = re.search(r'value=["\']([^"\']*)["\']', tag, re.IGNORECASE)
-            if t and t.group(1).lower() == 'hidden' and n:
-                hidden[n.group(1)] = v.group(1) if v else ''
+            # — Étape 1 : login —
+            page.goto('https://aviation.meteo.fr/login.php', timeout=30000)
+            page.wait_for_load_state('networkidle', timeout=15000)
+            page.locator('input[name="identifiant"]').fill('tahiti')
+            page.locator('input[name="motdepasse"]').fill('tahiti')
+            page.locator('input[type="submit"], button[type="submit"]').first.click()
+            page.wait_for_load_state('networkidle', timeout=15000)
 
-        # — Étape 1 : POST login (credentials + tokens CSRF) —
-        post_data = {**hidden, 'identifiant': 'tahiti', 'motdepasse': 'tahiti'}
-        login_req = urllib.request.Request(
-            AEROWEB_LOGIN_URL,
-            data=urllib.parse.urlencode(post_data).encode('utf-8'),
-            headers={
-                **BH,
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Referer': AEROWEB_LOGIN_URL,
-                'Origin': 'https://aviation.meteo.fr',
-            }
-        )
-        with opener.open(login_req, timeout=30) as r:
-            login_final_url = r.geturl()
-            r.read()  # consommer le body (accueil.php après redirect)
+            if 'accueil' not in page.url:
+                result['error'] = f'Authentification échouée (URL finale : {page.url})'
+                browser.close()
+                return result
 
-        # — Étape 2 : GET accueil.php (établit l'état session complet côté serveur) —
-        with opener.open(
-            urllib.request.Request(
-                'https://aviation.meteo.fr/accueil.php',
-                headers={**BH, 'Referer': login_final_url}
-            ), timeout=30
-        ) as r:
-            accueil_html = r.read().decode('utf-8', errors='replace')
+            # — Étape 2 : fetch AJAX dossier NTAA exécuté depuis le contexte navigateur —
+            #   Avantage : cookies de session inclus automatiquement par le navigateur,
+            #   même-origine donc pas de CORS, X-Requested-With transmis sans blocage.
+            ts_ms = int(time.time() * 1000)
+            dossier_html = page.evaluate(f"""async () => {{
+                const r = await fetch(
+                    '/dossier_personnalise_show_html.php'
+                    + '?id_recent_ordre=1&id={AEROWEB_ID}&origine=favoris&time={ts_ms}',
+                    {{
+                        headers: {{'X-Requested-With': 'XMLHttpRequest'}},
+                        credentials: 'include'
+                    }}
+                );
+                return await r.text();
+            }}""")
 
-        if 'Se connecter' in accueil_html or 'motdepasse' in accueil_html.lower():
-            result['error'] = 'Authentification Aeroweb échouée — identifiants rejetés'
-            return result
+            # — Étape 3 : extraction des liens PDF —
+            pdf_urls = list(dict.fromkeys(
+                re.findall(r'(?:href|src)=["\']([^"\']*\.pdf)["\']', dossier_html)
+            ))
 
-        # — Étape 3 : GET dossier NTAA (endpoint AJAX) —
-        ts_ms = int(time.time() * 1000)
-        qs = urllib.parse.urlencode({
-            'id_recent_ordre': '1', 'id': AEROWEB_ID,
-            'origine': 'favoris', 'time': ts_ms
-        })
-        dossier_req = urllib.request.Request(
-            f'{AEROWEB_DOSSIER_URL}?{qs}',
-            headers={
-                **BH,
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'text/html, */*; q=0.01',
-                'Referer': 'https://aviation.meteo.fr/accueil.php',
-            }
-        )
-        with opener.open(dossier_req, timeout=30) as r:
-            dossier_html = r.read().decode('utf-8', errors='replace')
+            if not pdf_urls:
+                result['error'] = f'Aucun PDF trouvé dans le dossier (réponse {len(dossier_html)} o)'
+                result['debug_html'] = dossier_html[:800]
+                browser.close()
+                return result
 
-        # — Étape 4 : extraction des liens PDF —
-        pdf_urls = list(dict.fromkeys(
-            re.findall(r'(?:href|src)=["\']([^"\']*\.pdf)["\']', dossier_html)
-        ))
-
-        if not pdf_urls:
-            result['error'] = f'Aucun PDF (réponse {len(dossier_html)} o)'
-            result['debug_html'] = dossier_html[:800]
-            return result
-
-        # — Étape 5 : téléchargement binaire + encodage base64 —
-        for rel_url in pdf_urls[:6]:
-            abs_url = rel_url if rel_url.startswith('http') else 'https://aviation.meteo.fr' + rel_url
-            fname = abs_url.split('/')[-1].lower()
-
-            ptype = ('TEMSI' if ('temsi' in fname or 'tsfc' in fname) else
-                     'WINTEM' if ('wintem' in fname or 'wfl' in fname or 'wtem' in fname) else 'PDF')
-            label = fname.replace('.pdf', '').replace('_', ' ').upper()
-            ctx = re.search(
-                r'([A-Za-zÀ-ÿ][^<]{3,60}?)\s*(?:</[^>]+>\s*){1,4}[^<]*' + re.escape(fname),
-                dossier_html, re.DOTALL
-            )
-            if ctx:
-                cand = strip_tags(ctx.group(1)).strip()
-                if 3 < len(cand) < 80:
-                    label = cand
-
-            try:
-                pdf_req = urllib.request.Request(
-                    abs_url,
-                    headers={**BH, 'Referer': 'https://aviation.meteo.fr/accueil.php'}
+            # — Étape 4 : téléchargement binaire via APIRequestContext (hérite des cookies) —
+            for rel_url in pdf_urls[:6]:
+                abs_url = rel_url if rel_url.startswith('http') else 'https://aviation.meteo.fr' + rel_url
+                fname = abs_url.split('/')[-1].lower()
+                ptype = ('TEMSI' if ('temsi' in fname or 'tsfc' in fname) else
+                         'WINTEM' if ('wintem' in fname or 'wfl' in fname or 'wtem' in fname) else 'PDF')
+                label = fname.replace('.pdf', '').replace('_', ' ').upper()
+                ctx_m = re.search(
+                    r'([A-Za-zÀ-ÿ][^<]{3,60}?)\s*(?:</[^>]+>\s*){1,4}[^<]*' + re.escape(fname),
+                    dossier_html, re.DOTALL
                 )
-                with opener.open(pdf_req, timeout=30) as r:
-                    pdf_bytes = r.read()
-                result['produits'].append({
-                    'libelle': label, 'type': ptype, 'url': abs_url,
-                    'pdf_b64': base64.b64encode(pdf_bytes).decode('ascii'),
-                    'size_kb': round(len(pdf_bytes) / 1024, 1),
-                })
-            except Exception as e:
-                result['produits'].append({
-                    'libelle': label, 'type': ptype, 'url': abs_url,
-                    'pdf_b64': None, 'error': str(e),
-                })
+                if ctx_m:
+                    cand = strip_tags(ctx_m.group(1)).strip()
+                    if 3 < len(cand) < 80:
+                        label = cand
+                try:
+                    resp = ctx.request.get(
+                        abs_url,
+                        headers={'Referer': 'https://aviation.meteo.fr/accueil.php'},
+                        timeout=30000
+                    )
+                    pdf_bytes = resp.body()
+                    result['produits'].append({
+                        'libelle': label, 'type': ptype, 'url': abs_url,
+                        'pdf_b64': base64.b64encode(pdf_bytes).decode('ascii'),
+                        'size_kb': round(len(pdf_bytes) / 1024, 1),
+                    })
+                except Exception as e:
+                    result['produits'].append({
+                        'libelle': label, 'type': ptype, 'url': abs_url,
+                        'pdf_b64': None, 'error': str(e),
+                    })
+
+            browser.close()
 
     except Exception as e:
         result['error'] = str(e)

@@ -1,4 +1,4 @@
-name: Météo NTAA (MetarCentral)
+name: Météo NTAA (MetarCentral + Aeroweb)
 
 "on":
   schedule:
@@ -20,10 +20,24 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Installer les dépendances (traduction NOTAM)
-        run: pip install deep-translator
+      - name: Installer les dépendances Python
+        run: pip install deep-translator playwright
 
-      - name: Récupérer et parser le METAR/TAF/NOTAM de NTAA
+      - name: Cache Playwright / Chromium
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-v1
+
+      - name: Installer Chromium (si non caché)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: playwright install chromium
+
+      - name: Dépendances système Chromium
+        run: playwright install-deps chromium
+
+      - name: Récupérer METAR/TAF/NOTAM et PDFs Aeroweb NTAA
         run: python3 .github/scripts/fetch_ntaa_weather.py
 
       - name: Publier si le fichier a changé

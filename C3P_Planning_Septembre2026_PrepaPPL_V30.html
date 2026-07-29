@@ -284,10 +284,11 @@ td.ops-plane { font-family: var(--font-display); font-weight:700; color: var(--c
   <a class="meteo-btn" href="https://meteo.pf/fr" target="_blank" rel="noopener">☁️ Météo-France Aéro (Polynésie)</a>
   <a class="meteo-btn" href="https://www.sia.aviation-civile.gouv.fr/" target="_blank" rel="noopener">📄 SIA — Portail officiel</a>
   <a class="meteo-btn" href="https://sofia-briefing.aviation-civile.gouv.fr/sofia/pages/prepavol.html" target="_blank" rel="noopener">📄 Sofia-Briefing — Préparation vol</a>
-  <button type="button" class="meteo-btn" id="aeroweb-btn" style="cursor:pointer; border:none;">🗺️ AEROWEB — TEMSI / WINTEM</button>
+  <button type="button" class="meteo-btn" id="aeroweb-btn" style="cursor:pointer; border:none;">🗺️ AEROWEB — accès direct</button>
   <span class="meteo-btn alert" id="wind-alert-badge" style="display:none;"></span>
 </div>
-<p style="font-size:.82rem; color:var(--c3p-ink-soft); margin-top:.4rem;">Les liens s'ouvrent dans un nouvel onglet, coordonnées Windy pré-réglées sur NTAA (Tahiti-Faa'a). Le site du SIA connaît des indisponibilités ponctuelles documentées ; en cas d'échec, passer par Sofia-Briefing. AEROWEB : le bouton se connecte automatiquement et ouvre le dossier <strong>tahiti / WINTEM</strong> — aucune action requise. Le décodage pédagogique du METAR/TAF est développé juste en dessous, section 1 bis.</p>
+<div id="aeroweb-products-panel" style="margin-top:.5rem;"></div>
+<p style="font-size:.82rem; color:var(--c3p-ink-soft); margin-top:.4rem;">Les liens s'ouvrent dans un nouvel onglet, coordonnées Windy pré-réglées sur NTAA (Tahiti-Faa'a). Le site du SIA connaît des indisponibilités ponctuelles documentées ; en cas d'échec, passer par Sofia-Briefing. <strong>AEROWEB TEMSI / WINTEM</strong> : GitHub Actions se connecte automatiquement toutes les 15 min et télécharge les PDFs — ils s'affichent directement ci-dessus sans aucune action. Le bouton « AEROWEB » ouvre le site Aeroweb connecté (accès direct au compte tahiti). Le décodage pédagogique du METAR/TAF est développé juste en dessous, section 1 bis.</p>
 </section>
 
 <section class="bloc" id="metar-taf-section">
@@ -2393,18 +2394,66 @@ document.addEventListener('DOMContentLoaded', function () {
     setNotamBadge('(' + entries.length + (vfrCount ? ' · ⚠️ ' + vfrCount + ' VFR' : '') + ')', vfrCount > 0);
   }
 
+  function renderAerowebProducts(aeroweb) {
+    var panel = document.getElementById('aeroweb-products-panel');
+    if (!panel) return;
+    if (!aeroweb) { panel.innerHTML = ''; return; }
+
+    if (aeroweb.error && !(aeroweb.produits && aeroweb.produits.length)) {
+      panel.innerHTML = '<p style="font-size:.8rem; color:var(--c3p-danger); margin:0;">'
+        + '⚠ Aeroweb indisponible : ' + aeroweb.error + '</p>';
+      return;
+    }
+
+    var produits = (aeroweb.produits || []).filter(function (p) { return p.pdf_b64; });
+    if (!produits.length) {
+      panel.innerHTML = '<p style="font-size:.8rem; color:var(--c3p-ink-soft); margin:0;">⏳ PDFs Aeroweb non encore disponibles — réessaie dans quelques minutes.</p>';
+      return;
+    }
+
+    var btns = '';
+    produits.forEach(function (p) {
+      try {
+        var raw = atob(p.pdf_b64);
+        var arr = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        var blobUrl = URL.createObjectURL(new Blob([arr], { type: 'application/pdf' }));
+        var icon = p.type === 'TEMSI' ? '🗺️' : p.type === 'WINTEM' ? '🌬️' : '📄';
+        var sizeNote = p.size_kb ? ' <span style="font-size:.75em;opacity:.7;">(' + p.size_kb + ' Ko)</span>' : '';
+        btns += '<a class="meteo-btn" href="' + blobUrl + '" target="_blank" rel="noopener" '
+          + 'style="text-decoration:none; font-weight:600;">'
+          + icon + ' ' + p.libelle + sizeNote + '</a>';
+      } catch (e) { /* skip malformed base64 */ }
+    });
+
+    var stamp = '';
+    if (aeroweb.updated_utc) {
+      var d = new Date(aeroweb.updated_utc);
+      var local = new Date(d.getTime() - 10 * 3600 * 1000);
+      stamp = String(local.getUTCHours()).padStart(2, '0') + 'h'
+            + String(local.getUTCMinutes()).padStart(2, '0') + ' (heure Tahiti)';
+    }
+
+    panel.innerHTML = '<div class="meteo-shortcuts" style="margin:0;">' + btns + '</div>'
+      + (stamp ? '<p style="font-size:.72rem; color:var(--c3p-ink-soft); margin:.3rem 0 0;">'
+                 + '📡 PDFs Aeroweb récupérés par GitHub Actions · ' + stamp + '</p>' : '');
+  }
+
   function fetchGithubWeatherData() {
     var metarPanel = document.getElementById('metar-taf-panel');
     var notamPanel = document.getElementById('notam-panel');
+    var aerowebPanel = document.getElementById('aeroweb-products-panel');
     var fallback = document.getElementById('metar-taf-fallback');
     if (metarPanel) metarPanel.innerHTML = '<p style="font-size:.85rem; color:var(--c3p-ink-soft);">⏳ Récupération en cours…</p>';
     if (notamPanel) notamPanel.innerHTML = '<p style="font-size:.85rem; color:var(--c3p-ink-soft);">⏳ Récupération en cours…</p>';
+    if (aerowebPanel) aerowebPanel.innerHTML = '<p style="font-size:.8rem; color:var(--c3p-ink-soft); margin:0;">⏳ PDFs Aeroweb en cours de récupération…</p>';
     if (fallback) fallback.style.display = 'none';
     fetch(GITHUB_WEATHER_URL, { cache: 'no-store' }).then(function (r) {
       return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status));
     }).then(function (data) {
       renderMetarTaf(data.metar_raw || null, data.taf_raw || null, (data.metar_raw || data.taf_raw) ? null : 'Le fichier météo publié sur GitHub ne contient ni METAR ni TAF exploitable pour l\'instant.');
       renderNotams(data.notams || [], null);
+      renderAerowebProducts(data.aeroweb_ntaa || null);
       var statusEl = document.getElementById('metar-taf-status');
       if (statusEl && data.updated_utc) {
         var d = new Date(data.updated_utc);

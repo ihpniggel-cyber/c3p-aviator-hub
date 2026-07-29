@@ -1,22 +1,26 @@
 """
-C3P - Récupération automatique METAR/TAF/NOTAM pour NTAA (Tahiti-Faa'a)
+C3P - Récupération automatique METAR/TAF/NOTAM + PDFs Aeroweb pour NTAA (Tahiti-Faa'a)
 Exécuté par GitHub Actions toutes les 15 minutes.
-Source : metarcentral.com (agrégateur public NOAA/NWS).
+Source METAR/TAF/NOTAM : metarcentral.com (agrégateur public NOAA/NWS).
+Source PDFs : aviation.meteo.fr (Aeroweb — authentification tahiti/tahiti).
 Écrit data/weather-ntaa.json à la racine du dépôt.
-
-V2 : ajoute une traduction française de chaque NOTAM (champ "desc_fr"),
-avec mise en cache pour ne retraduire que les NOTAM nouveaux ou modifiés
-(le texte anglais original "desc" reste toujours présent et fait foi).
 """
+import base64
+import http.cookiejar
 import json
 import os
 import re
 import time
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
 HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; C3P-Weather-Bot/1.0; +https://github.com/ihpniggel-cyber)'}
 OUTPUT_PATH = 'data/weather-ntaa.json'
+
+AEROWEB_LOGIN_URL = 'https://aviation.meteo.fr/login.php'
+AEROWEB_DOSSIER_URL = 'https://aviation.meteo.fr/dossier_personnalise_show_html.php'
+AEROWEB_ID = '104767'
 
 
 def fetch(url):
@@ -106,6 +110,120 @@ def translate_notams(entries):
     return entries
 
 
+def fetch_aeroweb_ntaa():
+    """
+    Authentification Aeroweb (tahiti/tahiti) + récupération des PDFs TEMSI/WINTEM NTAA.
+    Retourne {updated_utc, produits:[{libelle,type,url,pdf_b64,size_kb}], error}.
+    """
+    result = {
+        'updated_utc': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'produits': [],
+        'error': None
+    }
+    try:
+        jar = http.cookiejar.CookieJar()
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+
+        # Étape 1 : login POST
+        login_data = urllib.parse.urlencode(
+            {'identifiant': 'tahiti', 'motdepasse': 'tahiti'}
+        ).encode('utf-8')
+        login_req = urllib.request.Request(
+            AEROWEB_LOGIN_URL, data=login_data,
+            headers={
+                **HEADERS,
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Referer': 'https://aviation.meteo.fr/',
+                'Origin': 'https://aviation.meteo.fr',
+            }
+        )
+        with opener.open(login_req, timeout=30) as r:
+            login_resp_url = r.geturl()
+
+        # Étape 2 : dossier NTAA (endpoint AJAX — X-Requested-With requis)
+        ts_ms = int(time.time() * 1000)
+        qs = urllib.parse.urlencode({
+            'id_recent_ordre': '1', 'id': AEROWEB_ID,
+            'origine': 'favoris', 'time': ts_ms
+        })
+        dossier_req = urllib.request.Request(
+            f'{AEROWEB_DOSSIER_URL}?{qs}',
+            headers={
+                **HEADERS,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Referer': 'https://aviation.meteo.fr/accueil.php',
+                'Accept': 'text/html, */*; q=0.01',
+            }
+        )
+        with opener.open(dossier_req, timeout=30) as r:
+            dossier_html = r.read().decode('utf-8', errors='replace')
+
+        # Étape 3 : extraction des liens PDF
+        pdf_urls = list(dict.fromkeys(
+            re.findall(r'(?:href|src)=["\']([^"\']*\.pdf)["\']', dossier_html)
+        ))
+
+        if not pdf_urls:
+            result['error'] = (
+                f'Aucun PDF trouvé dans le dossier (réponse {len(dossier_html)} o, '
+                f'URL finale login: {login_resp_url})'
+            )
+            result['debug_html'] = dossier_html[:800]
+            return result
+
+        # Étape 4 : téléchargement + encodage base64
+        for rel_url in pdf_urls[:6]:
+            abs_url = rel_url if rel_url.startswith('http') else 'https://aviation.meteo.fr' + rel_url
+            fname = abs_url.split('/')[-1].lower()
+
+            # Type de produit
+            if 'temsi' in fname or 'tsfc' in fname:
+                ptype = 'TEMSI'
+            elif 'wintem' in fname or 'wfl' in fname or 'wtem' in fname:
+                ptype = 'WINTEM'
+            else:
+                ptype = 'PDF'
+
+            # Libellé depuis le contexte HTML (quelques mots avant le lien)
+            label = fname.replace('.pdf', '').replace('_', ' ').upper()
+            ctx = re.search(
+                r'([A-Za-zÀ-ÿ][^<]{3,60}?)\s*(?:</[^>]+>\s*){1,4}[^<]*' + re.escape(fname),
+                dossier_html, re.DOTALL
+            )
+            if ctx:
+                candidate = strip_tags(ctx.group(1)).strip()
+                if 3 < len(candidate) < 80:
+                    label = candidate
+
+            try:
+                pdf_req = urllib.request.Request(
+                    abs_url,
+                    headers={**HEADERS, 'Referer': 'https://aviation.meteo.fr/accueil.php'}
+                )
+                with opener.open(pdf_req, timeout=30) as r:
+                    pdf_bytes = r.read()
+                result['produits'].append({
+                    'libelle': label,
+                    'type': ptype,
+                    'url': abs_url,
+                    'pdf_b64': base64.b64encode(pdf_bytes).decode('ascii'),
+                    'size_kb': round(len(pdf_bytes) / 1024, 1),
+                })
+            except Exception as e:
+                result['produits'].append({
+                    'libelle': label,
+                    'type': ptype,
+                    'url': abs_url,
+                    'pdf_b64': None,
+                    'error': str(e),
+                })
+
+    except Exception as e:
+        result['error'] = str(e)
+
+    return result
+
+
 def main():
     result = {
         'updated_utc': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -113,6 +231,7 @@ def main():
         'metar_raw': None,
         'taf_raw': None,
         'notams': [],
+        'aeroweb_ntaa': None,
         'errors': []
     }
 
@@ -138,6 +257,16 @@ def main():
         result['notams'] = translate_notams(entries)
     except Exception as e:
         result['errors'].append('notam: ' + str(e))
+
+    try:
+        result['aeroweb_ntaa'] = fetch_aeroweb_ntaa()
+        n_pdfs = len([p for p in (result['aeroweb_ntaa'] or {}).get('produits', []) if p.get('pdf_b64')])
+        print(f'Aeroweb: {n_pdfs} PDF(s) téléchargé(s)', end='')
+        if result['aeroweb_ntaa'] and result['aeroweb_ntaa'].get('error'):
+            print(f' — erreur: {result["aeroweb_ntaa"]["error"]}', end='')
+        print()
+    except Exception as e:
+        result['errors'].append('aeroweb: ' + str(e))
 
     os.makedirs('data', exist_ok=True)
     with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:

@@ -2440,13 +2440,18 @@ document.addEventListener('DOMContentLoaded', function () {
     return { metarRaw: metarRaw, tafRaw: tafRaw };
   }
 
-  /* --- Auto-login Aeroweb via form target=_blank (non bloqué par popup blocker) --- */
+  /* --- Auto-login Aeroweb + navigation automatique dossier NTAA ---
+       Technique : form submit vers fenêtre nommée (non bloqué par popup blocker),
+       puis récupération de la référence par window.open('','aeroweb_win') dans
+       le setTimeout pour naviguer cross-origin vers le dossier NTAA.
+       ID favori NTAA = 104767 (stable pour ce compte). */
   function openAeroweb() {
+    var WIN_NAME = 'aeroweb_win';
+    // Soumettre le formulaire de login vers la fenêtre nommée
     var form = document.createElement('form');
-    form.method  = 'post';
-    form.action  = 'https://aviation.meteo.fr/login.php';
-    form.target  = '_blank';
-    form.rel     = 'noopener';
+    form.method = 'post';
+    form.action = 'https://aviation.meteo.fr/login.php';
+    form.target = WIN_NAME;
     form.style.display = 'none';
     var fields = { identifiant: 'tahiti', motdepasse: 'tahiti' };
     Object.keys(fields).forEach(function (name) {
@@ -2459,6 +2464,16 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.appendChild(form);
     form.submit();
     document.body.removeChild(form);
+    // Après que login.php a redirigé vers accueil.php (session posée),
+    // récupérer la référence à la fenêtre nommée et naviguer vers NTAA
+    setTimeout(function () {
+      try {
+        var win = window.open('', WIN_NAME);
+        if (win) {
+          win.location.href = 'https://aviation.meteo.fr/dossier_personnalise_show_html.php?id_recent_or_favori=104767';
+        }
+      } catch (e) {}
+    }, 4000);
   }
   var aerowebBtn = document.getElementById('aeroweb-btn');
   if (aerowebBtn) aerowebBtn.addEventListener('click', openAeroweb);

@@ -8,6 +8,10 @@ name: Météo NTAA (MetarCentral + Aeroweb)
 permissions:
   contents: write
 
+concurrency:
+  group: weather-ntaa
+  cancel-in-progress: true
+
 jobs:
   update-weather:
     runs-on: ubuntu-latest

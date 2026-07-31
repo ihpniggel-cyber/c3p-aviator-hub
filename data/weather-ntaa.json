@@ -1,5 +1,5 @@
 {
-  "updated_utc": "2026-07-31T20:51:37Z",
+  "updated_utc": "2026-07-31T20:53:27Z",
   "source": "metarcentral.com",
   "metar_raw": "METAR NTAA 312030Z AUTO 21004KT 180V240 9999 FEW 024 BKN 042 BKN 074 25/20 Q1015 TEMPO 30010KT",
   "taf_raw": "TAF NTAA 311700Z 3118/0124 VRB05KT 9999 FEW020 BKN050 PROB40 TEMPO 3122/0103 30010KT",
@@ -256,7 +256,7 @@
     }
   ],
   "aeroweb_ntaa": {
-    "updated_utc": "2026-07-31T20:51:43Z",
+    "updated_utc": "2026-07-31T20:53:46Z",
     "produits": [],
     "error": "BrowserType.launch: Executable doesn't exist at /home/runner/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     playwright install                                     ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
   },

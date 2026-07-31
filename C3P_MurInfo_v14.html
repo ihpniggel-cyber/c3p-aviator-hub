@@ -1017,7 +1017,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (out.cavok || /\b9999\b/.test(main)) out.vis = 9999;
     else { const vm = main.match(/\b(\d{4})\b/); if (vm) out.vis = +vm[1]; }
     if (!out.cavok && !out.clear) {
-      const re = /\b(FEW|SCT|BKN|OVC|VV)(\d{3})(CB|TCU)?\b/g; let m;
+      const re = /\b(FEW|SCT|BKN|OVC|VV)\s?(\d{3})(CB|TCU)?\b/g; let m;
       while ((m = re.exec(main)) !== null) out.clouds.push({ type:m[1], alt:+m[2]*100, cb:m[3]||null });
     }
     const tm = main.match(/\b(M?\d{2})\/(M?\d{2})\b/);
@@ -1383,7 +1383,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function genCalcProblems() {
     const d = new Date();
-    const seed = d.getFullYear() * 10000 + (d.getMonth()+1) * 100 + d.getDate();
+    const seed = Date.now() >>> 0;
     const r = rng31(seed);
     // 6 opérations : +, -, ×, ÷, +, -
     const types = ['+', '-', '×', '÷', '+', '-'];

@@ -180,8 +180,11 @@ def fetch_aeroweb_ntaa():
             vag_urls = re.findall(r"newwindow\('(affiche_vagtcag\.php\?mode=pdf[^']+)'\)", dossier_html)
 
             pdf_entries = [(label.strip().rstrip(':'), url) for label, url in carte_entries]
-            if vag_urls:
-                pdf_entries.append(('VAG Cendres volcaniques', vag_urls[0]))
+            existing_urls = {url for _, url in pdf_entries}
+            for vag_url in vag_urls:
+                if vag_url not in existing_urls:
+                    pdf_entries.append(('VAG Cendres volcaniques', vag_url))
+                    existing_urls.add(vag_url)
 
             if not pdf_entries:
                 result['error'] = f'Aucun document trouvé dans le dossier (réponse {len(dossier_html)} o)'

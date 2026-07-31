@@ -169,34 +169,32 @@ def fetch_aeroweb_ntaa():
                 return await r.text();
             }}""")
 
-            # — Étape 3 : extraction des liens PDF —
-            # Aeroweb peut servir les PDFs via .pdf direct OU via des scripts PHP
-            pdf_urls = list(dict.fromkeys(
-                re.findall(r'(?:href|src)=["\']([^"\']*\.pdf)["\']', dossier_html)
-                + re.findall(r'(?:href|src)=["\']([^"\']*(?:get_document|affiche_document|telecharg)[^"\']*)["\']', dossier_html)
-            ))
+            # — Étape 3 : extraction des documents via newwindow('affiche_image.php?mode=pdf&...') —
+            # Aeroweb ne met PAS de liens .pdf directs ; les cartes sont servies par affiche_image.php
+            # Structure : <td width:150px>LABEL</td> ... newwindow('affiche_image.php?mode=pdf&...')
+            carte_entries = re.findall(
+                r"<td[^>]*width:150px[^>]*>\s*([^<]+?)\s*</td>.*?newwindow\(['\"]([^'\"]+mode=pdf[^'\"]*)['\"]",
+                dossier_html, re.DOTALL
+            )
+            # VAG (cendres volcaniques) : affiche_vagtcag.php, on prend le plus récent
+            vag_urls = re.findall(r"newwindow\('(affiche_vagtcag\.php\?mode=pdf[^']+)'\)", dossier_html)
 
-            if not pdf_urls:
-                result['error'] = f'Aucun PDF trouvé dans le dossier (réponse {len(dossier_html)} o)'
-                result['debug_html'] = dossier_html  # HTML complet pour diagnostic
+            pdf_entries = [(label.strip().rstrip(':'), url) for label, url in carte_entries]
+            if vag_urls:
+                pdf_entries.append(('VAG Cendres volcaniques', vag_urls[0]))
+
+            if not pdf_entries:
+                result['error'] = f'Aucun document trouvé dans le dossier (réponse {len(dossier_html)} o)'
+                result['debug_html'] = dossier_html
                 browser.close()
                 return result
 
             # — Étape 4 : téléchargement binaire via APIRequestContext (hérite des cookies) —
-            for rel_url in pdf_urls[:6]:
-                abs_url = rel_url if rel_url.startswith('http') else 'https://aviation.meteo.fr' + rel_url
-                fname = abs_url.split('/')[-1].lower()
-                ptype = ('TEMSI' if ('temsi' in fname or 'tsfc' in fname) else
-                         'WINTEM' if ('wintem' in fname or 'wfl' in fname or 'wtem' in fname) else 'PDF')
-                label = fname.replace('.pdf', '').replace('_', ' ').upper()
-                ctx_m = re.search(
-                    r'([A-Za-zÀ-ÿ][^<]{3,60}?)\s*(?:</[^>]+>\s*){1,4}[^<]*' + re.escape(fname),
-                    dossier_html, re.DOTALL
-                )
-                if ctx_m:
-                    cand = strip_tags(ctx_m.group(1)).strip()
-                    if 3 < len(cand) < 80:
-                        label = cand
+            for label, rel_url in pdf_entries[:6]:
+                abs_url = rel_url if rel_url.startswith('http') else 'https://aviation.meteo.fr/' + rel_url
+                ptype = ('TEMSI' if 'sigwx' in rel_url else
+                         'WINTEM' if 'wintemp' in rel_url else
+                         'VAG' if 'vag' in rel_url else 'PDF')
                 try:
                     resp = ctx.request.get(
                         abs_url,

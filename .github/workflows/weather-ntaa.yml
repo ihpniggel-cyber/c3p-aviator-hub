@@ -27,12 +27,16 @@ jobs:
       - name: Installer les dépendances Python
         run: pip install deep-translator playwright
 
+      - name: Déterminer la version de Playwright installée
+        id: pw-version
+        run: echo "version=$(pip show playwright | grep -i '^Version:' | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
       - name: Cache Playwright / Chromium
         uses: actions/cache@v4
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ runner.os }}-v1
+          key: playwright-chromium-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
 
       - name: Installer Chromium (si non caché)
         if: steps.playwright-cache.outputs.cache-hit != 'true'

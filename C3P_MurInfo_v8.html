@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>C3P — Mur d'Information V7</title>
+  <title>C3P — Mur d'Information V8</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -80,12 +80,7 @@
     .wv.rwy-val{color:var(--gold);font-size:1.05rem;font-weight:700;}
     .taf-raw{font-family:var(--fm);font-size:.78rem;color:var(--paper);opacity:.85;white-space:pre-wrap;line-height:1.7;flex:1;overflow:auto;}
     .wx-raw{font-family:var(--fm);font-size:.72rem;color:var(--gold-soft);opacity:.7;background:rgba(15,26,48,.7);border:1px solid var(--rule);border-radius:4px;padding:.5rem .9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    /* Aeroweb PDF row */
-    #aeroweb-row{border-top:1px solid var(--rule);padding-top:.6rem;display:none;flex-shrink:0;}
-    .aeroweb-lbl{font-family:var(--fm);font-size:.65rem;color:var(--gold-soft);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;opacity:.8;}
-    #aeroweb-pdfs{display:flex;gap:.45rem;flex-wrap:wrap;}
-    .pdf-btn{background:rgba(15,26,48,.7);border:1px solid var(--rule);color:var(--paper);padding:4px 12px;border-radius:4px;cursor:pointer;font-family:var(--fm);font-size:.73rem;display:inline-flex;align-items:center;gap:.35rem;transition:background .15s,border-color .15s;}
-    .pdf-btn:hover{background:var(--navy-soft);border-color:var(--gold);color:var(--gold-soft);}
+    /* ══ LOGOPS ══ (override : slide entier cliquable) */
 
     /* ══ TRADUCTIONS ══ */
     #trad-slide{background:var(--navy);flex-direction:column;align-items:stretch;padding:0;}
@@ -244,10 +239,6 @@
           </div>
         </div>
         <div class="wx-raw" id="w-raw">NTAA —</div>
-        <div id="aeroweb-row">
-          <div class="aeroweb-lbl">Cartes aéro Aeroweb</div>
-          <div id="aeroweb-pdfs"></div>
-        </div>
       </div>
     </div>
 
@@ -371,8 +362,8 @@
       </div>
     </div>
 
-    <!-- LOGOPS -->
-    <div id="logops-slide" class="overlay">
+    <!-- LOGOPS — clic n'importe où sur le slide ouvre la fenêtre -->
+    <div id="logops-slide" class="overlay" style="cursor:pointer;" onclick="openLogops()">
       <div class="logops-inner">
         <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" opacity=".9">
           <rect x="6" y="6" width="52" height="52" rx="8" fill="none" stroke="#C8A951" stroke-width="2"/>
@@ -390,14 +381,11 @@
         </svg>
         <div class="logops-title">Logops — Planning du jour</div>
         <div class="logops-msg">
-          Le site <span style="font-family:var(--fm);color:var(--gold-soft)">logops.aero</span> interdit
-          l'intégration directe dans une page (protection X-Frame-Options).<br>
-          Ouvrez-le dans un onglet séparé — il peut rester ouvert en parallèle.
+          Cliquez n'importe où sur cet écran pour ouvrir Logops<br>
+          dans une fenêtre séparée positionnable à côté du mur d'info.
         </div>
-        <a class="logops-btn" href="https://logops.aero/" target="_blank" rel="noopener noreferrer">
-          ↗&nbsp; Ouvrir Logops dans un nouvel onglet
-        </a>
-        <div class="logops-url">logops.aero</div>
+        <div class="logops-btn" id="logops-action-btn">↗&nbsp; Cliquer pour ouvrir Logops</div>
+        <div class="logops-url" id="logops-status-msg">logops.aero</div>
       </div>
     </div>
 
@@ -423,7 +411,9 @@ document.addEventListener('DOMContentLoaded', () => {
     { id:'w-wind',  label:'Windy — Vent · Tahiti',           type:'url',     duration:20000,
       url:'https://embed.windy.com/embed2.html?lat=-17.65&lon=-149.45&detailLat=-17.65&detailLon=-149.45&zoom=10&level=surface&overlay=wind&product=ecmwf&menu=&message=true&marker=false&calendar=now&pressure=true&type=map&location=coordinates&detail=false&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1' },
     { id:'meteo',   label:'Météo NTAA · METAR & TAF',        type:'meteo',   duration:25000 },
-    { id:'trad',    label:'Traductions · Décryptage METAR/TAF', type:'trad', duration:35000 },
+    { id:'trad',    label:'Traductions · Décryptage METAR/TAF', type:'trad',   duration:35000 },
+    { id:'temsi',   label:'Carte TEMSI — SFC-FL 450 · Polynésie', type:'pdf', pdfType:'TEMSI',  duration:30000 },
+    { id:'wintem',  label:'Carte WINTEM FL 20 — Polynésie',        type:'pdf', pdfType:'WINTEM', pdfLabel:'FL 20', duration:25000 },
     { id:'odj',     label:'Ordre du jour — Prépa PPL 2026',  type:'odj',     duration:22000 },
     { id:'logops',  label:'Logops — Planning du jour',        type:'logops',  duration:30000 },
     { id:'qdj',     label:'Question du jour',                 type:'qdj',     duration:22000 },
@@ -582,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const d = await r.json();
       if (d.metar_raw) metarStr = d.metar_raw;
       if (d.taf_raw)   tafStr   = d.taf_raw;
-      if (d.aeroweb_ntaa) { WX.aeroweb = d.aeroweb_ntaa; renderAeroweb(); }
+      if (d.aeroweb_ntaa) WX.aeroweb = d.aeroweb_ntaa;
       if (d.updated_utc)  WX.ts = d.updated_utc;
     } catch(e) {}
 
@@ -597,6 +587,8 @@ document.addEventListener('DOMContentLoaded', () => {
     WX.metarStr = metarStr;
     WX.tafStr   = tafStr;
     applyWX();
+    // Si le slide courant est une carte PDF, le rafraîchir avec les données fraîches
+    if(SLIDES[idx] && SLIDES[idx].type === 'pdf') showPDF(SLIDES[idx]);
   }
 
   function set(id, val) {
@@ -632,41 +624,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (WX.ts) document.getElementById('wx-ts').textContent = WX.ts.replace('T',' ').replace('Z',' UTC');
 
     renderTrad();
-  }
-
-  function renderAeroweb() {
-    const row    = document.getElementById('aeroweb-row');
-    const pdfsEl = document.getElementById('aeroweb-pdfs');
-    if (!row || !pdfsEl) return;
-    const aw = WX.aeroweb;
-    if (!aw || !aw.produits || !aw.produits.length) return;
-
-    const seen = {}, btns = [];
-    for (const p of aw.produits) {
-      if (!p.pdf_b64 || seen[p.url]) continue;
-      seen[p.url] = true;
-      const icon = p.type === 'TEMSI' ? '🗺' : p.type === 'WINTEM' ? '🌬' : p.type === 'VAG' ? '🌋' : '📄';
-      const btn = document.createElement('button');
-      btn.className = 'pdf-btn';
-      btn.textContent = `${icon} ${p.libelle}`;
-      const b64 = p.pdf_b64;
-      btn.onclick = () => {
-        try {
-          const bytes = atob(b64);
-          const arr = new Uint8Array(bytes.length);
-          for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
-          const url = URL.createObjectURL(new Blob([arr], {type:'application/pdf'}));
-          window.open(url, '_blank');
-        } catch(e) {}
-      };
-      btns.push(btn);
-    }
-
-    if (btns.length) {
-      pdfsEl.innerHTML = '';
-      btns.forEach(b => pdfsEl.appendChild(b));
-      row.style.display = 'block';
-    }
   }
 
   fetchWX();
@@ -840,12 +797,42 @@ document.addEventListener('DOMContentLoaded', () => {
   function buildDots(){ dotsEl.innerHTML=''; SLIDES.forEach((s,i)=>{ const d=document.createElement('div'); d.className='dot'+(i===idx?' active':''); d.title=s.label; d.onclick=()=>goTo(i); dotsEl.appendChild(d); }); }
   function refreshDots(){ dotsEl.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===idx)); }
 
+  function openLogops(){
+    const w = window.open('https://logops.aero/', 'logops_win',
+      'width=1280,height=800,left=100,top=80,noopener,noreferrer');
+    const msg = document.getElementById('logops-status-msg');
+    if(msg) msg.textContent = w ? 'Fenêtre Logops ouverte ↗' : 'Autoriser les pop-ups Chrome pour ce fichier puis recliquer';
+  }
+
+  function showPDF(s){
+    const produits = (WX.aeroweb || {}).produits || [];
+    const p = produits.find(x =>
+      x.type === s.pdfType && x.pdf_b64 &&
+      (!s.pdfLabel || x.libelle.includes(s.pdfLabel))
+    );
+    if(p){
+      try{
+        const bytes = atob(p.pdf_b64);
+        const arr = new Uint8Array(bytes.length);
+        for(let i=0;i<bytes.length;i++) arr[i]=bytes.charCodeAt(i);
+        const url = URL.createObjectURL(new Blob([arr],{type:'application/pdf'}));
+        frame.removeAttribute('srcdoc'); frame.src=url; frame.style.visibility='visible';
+        return;
+      }catch(e){}
+    }
+    // Carte pas encore disponible
+    frame.srcdoc=`<html><body style="background:#0F1A30;color:#D4BB6E;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;gap:1.2rem;text-align:center;padding:2rem;"><div style="font-size:1.4rem;opacity:.55">${s.label}</div><div style="font-size:.82rem;opacity:.35">Fetch automatique en cours — disponible dans quelques minutes</div></body></html>`;
+    frame.style.visibility='visible';
+  }
+
   function showSlide(i){
     const s=SLIDES[i];
     lbl.textContent=s.label; ctr.textContent=`${i+1}/${SLIDES.length}`; refreshDots();
     Object.values(OVERLAYS).forEach(el=>el.classList.remove('on'));
     frame.style.visibility='visible';
-    if(s.type==='url'){
+    if(s.type==='pdf'){
+      showPDF(s);
+    } else if(s.type==='url'){
       frame.removeAttribute('srcdoc'); frame.src=s.url;
     } else {
       frame.style.visibility='hidden'; frame.removeAttribute('srcdoc'); frame.src='about:blank';

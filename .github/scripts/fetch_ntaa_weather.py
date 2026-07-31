@@ -123,7 +123,7 @@ def fetch_aeroweb_ntaa():
         from playwright.sync_api import sync_playwright
 
         with sync_playwright() as pw:
-            browser = pw.chromium.launch(headless=True)
+            browser = pw.chromium.launch(headless=True, channel="chromium")
             ctx = browser.new_context(locale='fr-FR')
             page = ctx.new_page()
 

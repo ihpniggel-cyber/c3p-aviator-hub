@@ -115,7 +115,17 @@
       "mcp__Google_Drive__read_file_content",
       "mcp__Google_Drive__download_file_content",
       "mcp__Google_Drive__create_file",
-      "mcp__Google_Drive__copy_file"
+      "mcp__Google_Drive__copy_file",
+      "WebFetch(domain:metarcentral.com)",
+      "WebFetch(domain:aviation.meteo.fr)",
+      "WebFetch(domain:translate.googleapis.com)",
+      "WebFetch(domain:translation.googleapis.com)",
+      "WebFetch(domain:fonts.googleapis.com)",
+      "WebFetch(domain:fonts.gstatic.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:supabase.co)",
+      "WebFetch(domain:supabase.com)"
     ]
   }
 }

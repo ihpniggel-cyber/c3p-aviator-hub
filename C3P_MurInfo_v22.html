@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C3P — Mur d'Information V22</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    :root {
+      --navy:#1B2A4A; --navy-soft:#2A3A5C; --navy-deep:#0F1A30;
+      --gold:#C8A951; --gold-soft:#D4BB6E; --gold-deep:#A8893A;
+      --paper:#F5F2EA; --rule:rgba(200,169,81,.25);
+      --warn:#C87A2A; --ok:#4A7A4A;
+      --fd:'Playfair Display',Georgia,serif;
+      --fb:'Source Serif 4',Georgia,serif;
+      --fm:'JetBrains Mono',monospace;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;overflow:hidden;background:var(--navy-deep);font-family:var(--fb);}
+    #app{display:flex;flex-direction:column;height:100vh;}
+
+    /* ── Topbar ── */
+    #topbar{background:var(--navy);border-bottom:2px solid var(--gold);height:44px;padding:0 1.2rem;display:flex;align-items:center;gap:.7rem;flex-shrink:0;z-index:100;}
+    .brand{font-family:var(--fd);font-size:1rem;color:var(--gold);letter-spacing:.06em;flex-shrink:0;}
+    .vb{width:1px;height:18px;background:var(--rule);flex-shrink:0;}
+    #slide-lbl{font-family:var(--fb);font-size:.82rem;color:var(--paper);opacity:.8;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+    #dots{display:flex;gap:5px;align-items:center;flex-shrink:0;}
+    .dot{width:7px;height:7px;border-radius:50%;background:var(--navy-soft);border:1px solid rgba(200,169,81,.35);cursor:pointer;transition:background .2s,transform .15s;}
+    .dot:hover{transform:scale(1.4);}
+    .dot.active{background:var(--gold);border-color:var(--gold);}
+    #ctr{font-family:var(--fm);font-size:.72rem;color:var(--gold-soft);flex-shrink:0;min-width:4ch;text-align:right;}
+    .ctrl{display:flex;gap:3px;align-items:center;flex-shrink:0;}
+    .btn{background:transparent;border:1px solid var(--rule);color:var(--paper);padding:3px 9px;height:26px;border-radius:4px;cursor:pointer;font-family:var(--fm);font-size:.75rem;display:flex;align-items:center;transition:background .15s,border-color .15s;}
+    .btn:hover{background:var(--navy-soft);border-color:var(--gold);color:var(--gold-soft);}
+    .btn.paused{border-color:var(--warn);color:var(--warn);}
+    #clock{font-family:var(--fm);font-size:1rem;font-weight:500;color:var(--gold);flex-shrink:0;min-width:6ch;text-align:right;letter-spacing:.04em;}
+
+    /* ── Stage ── */
+    #stage{flex:1;position:relative;overflow:hidden;background:var(--navy-deep);}
+    #frame{position:absolute;inset:0;width:100%;height:100%;border:none;}
+
+    /* ── Overlays ── */
+    .overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:2.5rem;}
+    .overlay.on{display:flex;}
+
+    /* ── Progress ── */
+    #prog{height:3px;background:rgba(255,255,255,.05);flex-shrink:0;}
+    #prog-fill{height:100%;background:linear-gradient(90deg,var(--gold-soft),var(--gold));width:0%;}
+
+    /* ── Exit fullscreen ── */
+    #exit-fs{position:fixed;top:50px;right:10px;z-index:9999;display:none;background:rgba(15,26,48,.88);border:1px solid var(--gold);color:var(--gold);font-family:var(--fm);font-size:.75rem;padding:5px 12px;border-radius:4px;cursor:pointer;}
+    :fullscreen #exit-fs,:-webkit-full-screen #exit-fs{display:block;}
+
+    /* ══ ACCUEIL ══ */
+    #accueil-slide{background:var(--navy);flex-direction:column;position:relative;}
+    .acc-logo-corner{position:absolute;top:1.2rem;right:1.5rem;height:58px;width:auto;opacity:.78;filter:drop-shadow(0 1px 5px rgba(0,0,0,.5));z-index:5;display:none;}
+    .acc-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:1.4rem;padding:2rem;}
+    .acc-title{font-family:var(--fd);font-size:3rem;color:var(--gold);text-align:center;letter-spacing:.04em;}
+    .acc-today{display:flex;flex-direction:column;align-items:center;gap:.9rem;}
+    .acc-date-line{font-family:var(--fb);font-size:1.22rem;color:var(--paper);opacity:.72;font-style:italic;}
+    .acc-ephem{display:flex;gap:0;align-items:stretch;background:rgba(15,26,48,.5);border:1px solid var(--rule);border-radius:6px;overflow:hidden;}
+    .acc-ephem-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.28rem;padding:.65rem 1.8rem;}
+    .acc-ephem-lbl{font-family:var(--fm);font-size:.62rem;color:var(--gold-soft);text-transform:uppercase;letter-spacing:.07em;}
+    .acc-ephem-val{font-family:var(--fm);font-size:1.08rem;color:var(--paper);}
+    .acc-ephem-sep{width:1px;background:var(--rule);flex-shrink:0;align-self:stretch;margin:.5rem 0;}
+    .acc-wx{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;background:rgba(15,26,48,.55);border:1px solid var(--rule);border-left:3px solid var(--gold);border-radius:0 4px 4px 0;padding:.9rem 2rem;}
+    .acc-wx-item{display:flex;flex-direction:column;align-items:center;gap:.25rem;}
+    .acc-wx-lbl{font-family:var(--fm);font-size:.68rem;color:var(--gold-soft);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-wx-val{font-family:var(--fm);font-size:1rem;color:var(--paper);}
+    .acc-wx-val.spin{opacity:.4;font-style:italic;}
+
+    /* ══ MÉTÉO ══ */
+    #meteo-slide{background:var(--navy);flex-direction:column;align-items:stretch;padding:0;overflow:hidden;}
+    .wx-inner{display:flex;flex-direction:column;flex:1;min-height:0;padding:.9rem 2rem;gap:.45rem;border-bottom:1px solid rgba(200,169,81,.12);}
+    .wx-header{display:flex;align-items:center;gap:1rem;border-bottom:1px solid var(--rule);padding-bottom:.6rem;flex-shrink:0;}
+    .wx-header h2{font-family:var(--fd);color:var(--gold);font-size:1.72rem;}
+    .wx-ts{font-family:var(--fm);font-size:.72rem;color:var(--gold-soft);margin-left:auto;opacity:.8;}
+    .wx-cols{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;flex:1;min-height:0;}
+    .wx-panel{background:rgba(15,26,48,.55);border:1px solid var(--rule);border-radius:5px;padding:.75rem 1.1rem;display:flex;flex-direction:column;gap:.35rem;overflow:hidden;}
+    .wx-panel h3{font-family:var(--fd);color:var(--gold-soft);font-size:.98rem;margin-bottom:.15rem;flex-shrink:0;}
+    .wx-row{display:grid;grid-template-columns:auto 1fr;gap:.12rem .9rem;align-items:baseline;}
+    .wl{font-family:var(--fm);font-size:.82rem;color:var(--gold-soft);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+    .wv{font-family:var(--fm);font-size:1.05rem;color:var(--paper);}
+    .wv.spin{opacity:.4;font-style:italic;}
+    .wv.rwy-val{color:var(--gold);font-size:1.15rem;font-weight:700;}
+    .taf-raw{font-family:var(--fm);font-size:.88rem;color:var(--paper);opacity:.85;white-space:pre-wrap;line-height:1.65;flex:1;overflow:auto;min-height:0;}
+    .wx-raw{font-family:var(--fm);font-size:.82rem;color:var(--gold-soft);opacity:.65;background:rgba(15,26,48,.7);border:1px solid var(--rule);border-radius:4px;padding:.4rem .8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
+    #wx-illus{flex:1;min-height:0;overflow:hidden;position:relative;}
+
+    /* ══ TRADUCTIONS ══ */
+    #trad-slide{background:var(--navy);flex-direction:column;align-items:stretch;padding:0;}
+    .trad-inner{display:flex;flex-direction:column;height:100%;padding:1.2rem 2rem;gap:.8rem;}
+    .trad-header{display:flex;align-items:center;gap:.8rem;border-bottom:1px solid var(--rule);padding-bottom:.7rem;flex-shrink:0;}
+    .trad-header h2{font-family:var(--fd);color:var(--gold);font-size:2rem;}
+    .trad-header .trad-sub{font-family:var(--fm);font-size:.78rem;color:var(--gold-soft);opacity:.7;margin-left:auto;}
+    .trad-cols{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;flex:1;min-height:0;}
+    .trad-panel{display:flex;flex-direction:column;gap:.5rem;min-height:0;}
+    .trad-section-lbl{font-family:var(--fm);font-size:.82rem;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;border-left:3px solid var(--gold);padding-left:.5rem;}
+    .trad-raw{font-family:var(--fm);font-size:1rem;color:var(--gold-soft);background:rgba(15,26,48,.6);border:1px solid var(--rule);border-radius:4px;padding:.5rem .8rem;white-space:pre-wrap;word-break:break-all;flex-shrink:0;}
+    .trad-scroll{flex:1;overflow-y:auto;overflow-x:hidden;}
+    .trad-table{width:100%;border-collapse:collapse;}
+    .trad-table tr{border-bottom:1px solid rgba(200,169,81,.07);}
+    .trad-table tr:hover{background:rgba(200,169,81,.05);}
+    .td-code{font-family:var(--fm);font-size:1.05rem;color:var(--gold);padding:.3rem .5rem;white-space:nowrap;vertical-align:top;}
+    .td-lbl{font-family:var(--fb);font-size:1rem;color:var(--gold-soft);padding:.3rem .3rem;white-space:nowrap;vertical-align:top;opacity:.85;}
+    .td-det{font-family:var(--fb);font-size:1.1rem;color:var(--paper);padding:.3rem .4rem;line-height:1.4;vertical-align:top;}
+    .trad-nodata{font-family:var(--fb);font-style:italic;color:var(--paper);opacity:.4;font-size:1rem;padding:1rem;}
+
+    /* ══ ODJ ══ */
+    #odj-slide{background:var(--navy);flex-direction:column;align-items:stretch;padding:0;}
+    #odj-inner{display:flex;flex-direction:column;height:100%;padding:2rem 3rem;gap:1.2rem;}
+    #odj-header{display:flex;align-items:baseline;gap:1.2rem;border-bottom:1px solid var(--rule);padding-bottom:.8rem;}
+    #odj-header h2{font-family:var(--fd);color:var(--gold);font-size:1.8rem;}
+    .odj-date{font-family:var(--fm);font-size:.85rem;color:var(--gold-soft);}
+    #odj-activity{font-family:var(--fb);font-size:1.2rem;color:var(--paper);line-height:1.6;}
+    #odj-slots{display:flex;gap:.8rem;flex-wrap:wrap;margin-top:auto;}
+    .slot-card{background:var(--navy-soft);border:1px solid var(--rule);border-radius:5px;padding:.7rem 1.1rem;flex:1;min-width:130px;}
+    .slot-h{font-family:var(--fm);font-size:1rem;color:var(--gold);margin-bottom:.25rem;}
+    .slot-e{font-family:var(--fm);font-size:.85rem;color:var(--paper);}
+    #odj-empty{font-family:var(--fb);font-style:italic;color:var(--paper);opacity:.6;font-size:1.1rem;}
+    #odj-next{font-family:var(--fm);font-size:.85rem;color:var(--gold-soft);margin-top:.5rem;}
+
+    /* ══ QDJ ══ */
+    #qdj-slide{background:var(--navy);flex-direction:column;}
+    .qdj-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;max-width:900px;gap:1.6rem;padding:2rem;}
+    .qdj-label{font-family:var(--fm);font-size:.88rem;color:var(--gold-soft);text-transform:uppercase;letter-spacing:.1em;}
+    .qdj-q{font-family:var(--fd);font-size:2.1rem;color:var(--paper);text-align:center;line-height:1.45;}
+    .qdj-sep{width:60px;height:1px;background:var(--gold);opacity:.4;}
+    .qdj-answer{font-family:var(--fb);font-size:1.15rem;font-style:italic;color:var(--gold-soft);text-align:center;line-height:1.75;white-space:pre-wrap;background:rgba(15,26,48,.55);border:1px solid var(--rule);border-radius:5px;padding:1.1rem 1.6rem;max-width:780px;}
+    .qdj-timer{font-family:var(--fm);font-size:.85rem;color:var(--paper);opacity:.4;font-style:italic;}
+
+    /* ══ RAPPELS ══ */
+    #rappels-slide{background:var(--navy);flex-direction:column;align-items:stretch;padding:0;}
+    .rp-inner{display:flex;flex-direction:column;height:100%;padding:1.1rem 2rem .9rem;gap:.8rem;}
+    .rp-header{display:flex;align-items:center;gap:1rem;border-bottom:1px solid var(--rule);padding-bottom:.65rem;}
+    .rp-header h2{font-family:var(--fd);color:var(--gold);font-size:1.9rem;}
+    .rp-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;flex:1;}
+    .rp-card{background:linear-gradient(145deg,rgba(15,26,48,.85),rgba(10,18,36,.9));border:1px solid rgba(200,169,81,.2);border-radius:6px;padding:.8rem 1.1rem;overflow:hidden;display:flex;flex-direction:column;gap:.5rem;}
+    .rp-card-hd{display:flex;align-items:center;gap:.6rem;padding-bottom:.45rem;border-bottom:1px solid rgba(200,169,81,.16);}
+    .rp-card-hd svg{flex-shrink:0;opacity:.75;}
+    .rp-card-hd h3{font-family:var(--fd);color:var(--gold-soft);font-size:.98rem;margin:0;}
+    /* Fréquences — radio panel */
+    .freq-list{display:flex;flex-direction:column;gap:0;}
+    .freq-row{display:grid;grid-template-columns:6.8ch 1fr;align-items:center;gap:0 .6rem;padding:.2rem .38rem;border-radius:3px;}
+    .freq-row:nth-child(odd){background:rgba(200,169,81,.05);}
+    .freq-hz{font-family:var(--fm);font-size:1.05rem;color:var(--gold);letter-spacing:.02em;}
+    .freq-lbl{font-family:var(--fb);font-size:.88rem;color:var(--paper);opacity:.88;}
+    /* Transpondeur — squawk display */
+    .xpdr-list{display:flex;flex-direction:column;gap:.22rem;}
+    .xpdr-item{display:flex;align-items:center;gap:.75rem;padding:.3rem .55rem;border-radius:4px;border:1px solid transparent;}
+    .xpdr-item.vfr{background:rgba(200,169,81,.07);border-color:rgba(200,169,81,.2);}
+    .xpdr-item.emg{background:rgba(168,68,58,.16);border-color:rgba(200,80,60,.38);}
+    .xpdr-item.nrd{background:rgba(200,122,42,.08);border-color:rgba(200,122,42,.28);}
+    .xpdr-item.hj{background:rgba(160,90,50,.08);border-color:rgba(180,100,60,.22);}
+    .xpdr-code{font-family:var(--fm);font-size:1.28rem;font-weight:700;letter-spacing:.08em;min-width:4.4ch;}
+    .xpdr-code.vfr{color:var(--gold);}
+    .xpdr-code.emg{color:#e05858;}
+    .xpdr-code.nrd{color:#C87A2A;}
+    .xpdr-code.hj{color:#C87050;}
+    .xpdr-desc{font-family:var(--fb);font-size:.88rem;color:var(--paper);}
+    /* Checklist avant le vol */
+    .check-list{display:flex;flex-direction:column;gap:.18rem;}
+    .check-item{display:flex;align-items:flex-start;gap:.58rem;padding:.22rem 0;border-bottom:1px solid rgba(200,169,81,.07);}
+    .check-item:last-child{border:none;}
+    .check-box{width:13px;height:13px;border:1.5px solid rgba(200,169,81,.45);border-radius:2px;flex-shrink:0;margin-top:3px;}
+    .check-box.warn{border-color:var(--warn);background:rgba(200,122,42,.14);}
+    .check-text{font-family:var(--fb);font-size:.9rem;color:var(--paper);line-height:1.4;}
+    .check-text.warn{color:var(--warn);font-weight:600;}
+    /* Minimums VFR */
+    .minfr-list{display:flex;flex-direction:column;gap:.2rem;}
+    .minfr-item{display:flex;align-items:flex-start;gap:.55rem;padding:.22rem 0;border-bottom:1px solid rgba(200,169,81,.07);}
+    .minfr-item:last-child{border:none;}
+    .minfr-bullet{font-family:var(--fm);font-size:.85rem;color:var(--gold-soft);margin-top:1px;flex-shrink:0;}
+    .minfr-bullet.warn{color:var(--warn);}
+    .minfr-text{font-family:var(--fb);font-size:.9rem;color:var(--paper);line-height:1.4;}
+    .minfr-text.warn{color:var(--warn);font-weight:600;}
+
+    /* ══ PDF ══ */
+    #pdf-slide{background:var(--navy-deep);flex-direction:column;align-items:center;justify-content:center;padding:0;}
+    #pdf-canvas{display:block;max-width:100%;max-height:100%;}
+    #pdf-error{font-family:var(--fm);font-size:.9rem;color:var(--gold-soft);text-align:center;padding:2rem;opacity:.55;line-height:1.8;}
+    #pdf-spinner{font-family:var(--fm);font-size:.82rem;color:var(--gold-soft);opacity:.4;padding:2rem;}
+
+    /* ══ ESPACES AÉRIENS ══ */
+    #espaces-slide{background:var(--navy);flex-direction:column;align-items:stretch;padding:0;overflow:hidden;}
+    .esp-inner{display:flex;flex-direction:column;height:100%;padding:.8rem 2rem 1rem;gap:.6rem;}
+    .esp-header{display:flex;align-items:baseline;gap:1rem;border-bottom:1px solid var(--rule);padding-bottom:.55rem;flex-shrink:0;}
+    .esp-header h2{font-family:var(--fd);color:var(--gold);font-size:1.65rem;}
+    .esp-header-sub{font-family:var(--fb);font-size:.78rem;color:var(--paper);opacity:.5;font-style:italic;}
+    .esp-layout{display:grid;grid-template-columns:40% 1fr;gap:1.4rem;flex:1;min-height:0;overflow:hidden;}
+    .esp-profile-col{display:flex;flex-direction:column;gap:.35rem;min-height:0;}
+    .esp-col-title{font-family:var(--fm);font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gold-soft);}
+    .esp-profile-wrap{flex:1;min-height:0;display:flex;align-items:stretch;}
+    .esp-table-col{display:flex;flex-direction:column;gap:.5rem;overflow:hidden;}
+    .esp-tbl{width:100%;border-collapse:collapse;}
+    .esp-tbl th{font-family:var(--fm);font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--gold-soft);border-bottom:1px solid var(--rule);padding:.4rem .65rem;text-align:left;background:rgba(15,26,48,.5);}
+    .esp-tbl td{font-family:var(--fb);font-size:.82rem;color:var(--paper);padding:.38rem .65rem;border-bottom:1px solid rgba(200,169,81,.07);vertical-align:middle;line-height:1.3;}
+    .esp-tbl tr:last-child td{border-bottom:none;}
+    .esp-tbl tr.dim td{opacity:.42;}
+    .esp-cls{font-family:var(--fd);font-size:1.12rem;font-weight:700;}
+    .esp-cls.red{color:#C86E6E;}
+    .esp-cls.gold{color:var(--gold);}
+    .esp-cls.gold-s{color:var(--gold-soft);}
+    .esp-cls.grn{color:#6EC86E;}
+    .esp-cls.dim{color:#6A7A94;}
+    .y{color:#6EC86E;font-family:var(--fm);font-size:.8rem;}
+    .n{color:#C86E6E;font-family:var(--fm);font-size:.8rem;}
+    .esp-legend{display:flex;gap:1.8rem;padding:.5rem .8rem;background:rgba(15,26,48,.5);border:1px solid var(--rule);border-radius:5px;}
+    .esp-legend-item{font-family:var(--fb);font-size:.78rem;color:var(--paper);opacity:.75;display:flex;align-items:center;gap:.4rem;}
+    .esp-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+    /* ══ MINIMAS VMC ══ */
+    #vmc-slide{background:var(--navy);flex-direction:column;align-items:stretch;padding:0;overflow:hidden;}
+    .vmc-inner{display:flex;flex-direction:column;height:100%;padding:.8rem 2rem 1rem;gap:.6rem;}
+    .vmc-header{display:flex;align-items:baseline;gap:1rem;border-bottom:1px solid var(--rule);padding-bottom:.55rem;flex-shrink:0;}
+    .vmc-header h2{font-family:var(--fd);color:var(--gold);font-size:1.65rem;}
+    .vmc-header-sub{font-family:var(--fb);font-size:.78rem;color:var(--paper);opacity:.5;font-style:italic;}
+    .vmc-layout{display:grid;grid-template-columns:42% 1fr;gap:1.4rem;flex:1;min-height:0;overflow:hidden;}
+    .vmc-diag-col{display:flex;flex-direction:column;gap:.35rem;min-height:0;}
+    .vmc-diag-wrap{flex:1;min-height:0;display:flex;align-items:stretch;}
+    .vmc-diag-wrap svg{width:100%;height:100%;display:block;}
+    .vmc-data-col{display:flex;flex-direction:column;gap:.5rem;overflow:hidden;}
+    .vmc-col-title{font-family:var(--fm);font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gold-soft);}
+    .vmc-tbl{width:100%;border-collapse:collapse;}
+    .vmc-tbl th{font-family:var(--fm);font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--gold-soft);border-bottom:1px solid var(--rule);padding:.4rem .65rem;text-align:left;background:rgba(15,26,48,.5);}
+    .vmc-tbl td{font-family:var(--fb);font-size:.82rem;color:var(--paper);padding:.38rem .65rem;border-bottom:1px solid rgba(200,169,81,.07);vertical-align:middle;line-height:1.3;}
+    .vmc-tbl tr:last-child td{border-bottom:none;}
+    .vmc-tbl tr.vmc-dim td{opacity:.38;}
+    .vmc-cls{font-family:var(--fd);font-size:1.1rem;font-weight:700;}
+    .vmc-cls.gold{color:var(--gold);}
+    .vmc-cls.grn{color:#6EC86E;}
+    .vmc-cls.red{color:#C86E6E;}
+    .vmc-hi{background:rgba(200,169,81,.06);}
+    .vmc-hi td:first-child{border-left:2px solid var(--gold);}
+    .vmc-gi{background:rgba(74,122,74,.06);}
+    .vmc-gi td:first-child{border-left:2px solid #6EC86E;}
+    .vmc-notes{display:flex;flex-direction:column;gap:.5rem;overflow:hidden;}
+    .vmc-note{background:rgba(15,26,48,.55);border:1px solid var(--rule);border-left:3px solid var(--gold);border-radius:0 5px 5px 0;padding:.55rem .85rem;}
+    .vmc-note.warn{border-left-color:var(--warn);}
+    .vmc-note-title{font-family:var(--fm);font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--gold-soft);margin-bottom:.25rem;}
+    .vmc-note.warn .vmc-note-title{color:var(--warn);}
+    .vmc-note-body{font-family:var(--fb);font-size:.83rem;color:var(--paper);line-height:1.45;}
+    .vmc-note-body strong{color:var(--gold);font-weight:600;}
+
+    /* ══ CALCUL MENTAL ══ */
+    #calc-slide,#calcr-slide{background:var(--navy);flex-direction:column;align-items:center;justify-content:center;}
+    .calc-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;}
+    .calc-label{font-family:var(--fm);font-size:.9rem;color:var(--gold-soft);text-transform:uppercase;letter-spacing:.12em;}
+    .calc-expr{font-family:var(--fm);font-size:5.5rem;font-weight:700;color:var(--paper);text-align:center;line-height:1;letter-spacing:.02em;}
+    .calc-op{color:var(--gold);}
+    .calc-q{color:var(--gold-soft);opacity:.75;}
+    .calc-eq{color:var(--gold-soft);}
+    .calc-res{color:#6EC86E;}
+    .calc-counter{font-family:var(--fm);font-size:.8rem;color:var(--gold-soft);opacity:.35;margin-top:.3rem;}
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <span class="brand">C3P</span>
+    <div class="vb"></div>
+    <span id="slide-lbl">Chargement…</span>
+    <div id="dots"></div>
+    <span id="ctr">—/—</span>
+    <div class="vb"></div>
+    <div class="ctrl">
+      <button class="btn" id="btn-prev">◀</button>
+      <button class="btn" id="btn-play">⏸</button>
+      <button class="btn" id="btn-next">▶</button>
+      <div class="vb"></div>
+      <button class="btn" id="btn-fs">⛶</button>
+    </div>
+    <div class="vb"></div>
+    <div id="clock">--:--:--</div>
+  </div>
+
+  <div id="stage">
+    <iframe id="frame" src="about:blank" allow="autoplay; fullscreen"></iframe>
+
+    <!-- ACCUEIL -->
+    <div id="accueil-slide" class="overlay">
+      <!-- Logo C3P : coin supérieur droit — src renseigné par JS depuis logo base64 -->
+      <img id="acc-logo" class="acc-logo-corner" src="" alt="C3P">
+      <div class="acc-inner">
+        <div class="acc-title">Bonjour les Prépa&nbsp;2026&nbsp;!</div>
+        <div class="acc-today">
+          <div class="acc-date-line" id="acc-date"></div>
+          <div class="acc-ephem">
+            <div class="acc-ephem-item">
+              <span class="acc-ephem-lbl">Lever du soleil</span>
+              <span class="acc-ephem-val" id="e-rise">—</span>
+            </div>
+            <div class="acc-ephem-sep"></div>
+            <div class="acc-ephem-item">
+              <span class="acc-ephem-lbl">Coucher du soleil</span>
+              <span class="acc-ephem-val" id="e-set">—</span>
+            </div>
+            <div class="acc-ephem-sep"></div>
+            <div class="acc-ephem-item">
+              <span class="acc-ephem-lbl">Durée du jour</span>
+              <span class="acc-ephem-val" id="e-dur">—</span>
+            </div>
+            <div class="acc-ephem-sep"></div>
+            <div class="acc-ephem-item">
+              <span class="acc-ephem-lbl">Lune</span>
+              <span class="acc-ephem-val" id="e-moon">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="acc-wx">
+          <div class="acc-wx-item"><span class="acc-wx-lbl">Piste en service</span><span class="acc-wx-val spin" id="a-rwy">…</span></div>
+          <div class="acc-wx-item"><span class="acc-wx-lbl">Vent</span><span class="acc-wx-val spin" id="a-wind">…</span></div>
+          <div class="acc-wx-item"><span class="acc-wx-lbl">Nébulosité</span><span class="acc-wx-val spin" id="a-cld">…</span></div>
+          <div class="acc-wx-item"><span class="acc-wx-lbl">QNH</span><span class="acc-wx-val spin" id="a-qnh">…</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MÉTÉO (split: données haut / coupe météo bas) -->
+    <div id="meteo-slide" class="overlay">
+      <div class="wx-inner">
+        <div class="wx-header">
+          <svg width="24" height="24" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="12" fill="none" stroke="#C8A951" stroke-width="1.5" opacity=".7"/><line x1="14" y1="2" x2="14" y2="5" stroke="#C8A951" stroke-width="1.5"/><line x1="14" y1="23" x2="14" y2="26" stroke="#C8A951" stroke-width="1.5"/><line x1="2" y1="14" x2="5" y2="14" stroke="#C8A951" stroke-width="1.5"/><line x1="23" y1="14" x2="26" y2="14" stroke="#C8A951" stroke-width="1.5"/><line x1="14" y1="14" x2="14" y2="7" stroke="#F5F2EA" stroke-width="1.8" stroke-linecap="round"/><line x1="14" y1="14" x2="19" y2="14" stroke="#C8A951" stroke-width="1.5" stroke-linecap="round"/><circle cx="14" cy="14" r="1.8" fill="#C8A951"/></svg>
+          <h2>Météo NTAA · Tahiti-Faaa</h2>
+          <span class="wx-ts" id="wx-ts">—</span>
+        </div>
+        <div class="wx-cols">
+          <div class="wx-panel">
+            <h3>Observation actuelle — METAR</h3>
+            <div class="wx-row">
+              <span class="wl">Piste</span>       <span class="wv rwy-val spin" id="w-rwy">…</span>
+              <span class="wl">Vent</span>         <span class="wv spin" id="w-wind">…</span>
+              <span class="wl">Visibilité</span>   <span class="wv spin" id="w-vis">…</span>
+              <span class="wl">Nuages</span>       <span class="wv spin" id="w-cld">…</span>
+              <span class="wl">Température</span>  <span class="wv spin" id="w-temp">…</span>
+              <span class="wl">QNH</span>          <span class="wv spin" id="w-qnh">…</span>
+            </div>
+          </div>
+          <div class="wx-panel">
+            <h3>Prévision — TAF</h3>
+            <pre class="taf-raw" id="w-taf">Chargement…</pre>
+          </div>
+        </div>
+        <div class="wx-raw" id="w-raw">NTAA —</div>
+      </div>
+      <!-- Coupe météo illustrée (limitée FL090) -->
+      <div id="wx-illus"></div>
+    </div>
+
+    <!-- TRADUCTIONS -->
+    <div id="trad-slide" class="overlay">
+      <div class="trad-inner">
+        <div class="trad-header">
+          <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5z" fill="none" stroke="#C8A951" stroke-width="1.5" stroke-linejoin="round"/><path d="M2 17l10 5 10-5" fill="none" stroke="#C8A951" stroke-width="1.5" stroke-linejoin="round" opacity=".6"/><path d="M2 12l10 5 10-5" fill="none" stroke="#C8A951" stroke-width="1.5" stroke-linejoin="round" opacity=".8"/></svg>
+          <h2>Traductions · Décryptage METAR &amp; TAF</h2>
+          <span class="trad-sub">Aide à la lecture — Prépa 2026</span>
+        </div>
+        <div class="trad-cols">
+          <div class="trad-panel">
+            <div class="trad-section-lbl">METAR — Observation actuelle</div>
+            <div class="trad-raw" id="trad-metar-raw">—</div>
+            <div class="trad-scroll"><table class="trad-table" id="trad-metar-tbl"></table></div>
+          </div>
+          <div class="trad-panel">
+            <div class="trad-section-lbl">TAF — Prévision d'aérodrome</div>
+            <div class="trad-raw" id="trad-taf-raw">—</div>
+            <div class="trad-scroll"><table class="trad-table" id="trad-taf-tbl"></table></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORDRE DU JOUR -->
+    <div id="odj-slide" class="overlay">
+      <div id="odj-inner">
+        <div id="odj-header">
+          <h2>Ordre du jour</h2>
+          <span class="odj-date" id="odj-date"></span>
+        </div>
+        <div id="odj-activity"></div>
+        <div id="odj-empty" style="display:none"></div>
+        <div id="odj-next"  style="display:none"></div>
+        <div id="odj-slots"></div>
+      </div>
+    </div>
+
+    <!-- QUESTION DU JOUR -->
+    <div id="qdj-slide" class="overlay">
+      <div class="qdj-inner">
+        <svg width="70" height="70" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg" opacity=".85">
+          <circle cx="36" cy="36" r="32" fill="none" stroke="#C8A951" stroke-width="2"/>
+          <circle cx="36" cy="36" r="26" fill="none" stroke="#C8A951" stroke-width=".7" opacity=".35"/>
+          <g stroke="#C8A951" stroke-width="1.2" opacity=".45">
+            <line x1="36" y1="6" x2="36" y2="11"/><line x1="36" y1="61" x2="36" y2="66"/>
+            <line x1="6" y1="36" x2="11" y2="36"/><line x1="61" y1="36" x2="66" y2="36"/>
+          </g>
+          <line x1="36" y1="36" x2="21" y2="19" stroke="#F5F2EA" stroke-width="2.2" stroke-linecap="round"/>
+          <line x1="36" y1="36" x2="59" y2="36" stroke="#C8A951" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="36" cy="36" r="3" fill="#C8A951"/>
+          <text x="36" y="54" text-anchor="middle" font-family="'JetBrains Mono'" font-size="5.5" fill="#C8A951" opacity=".6">hPa</text>
+        </svg>
+        <div class="qdj-label">✦ &nbsp; Question du jour &nbsp; ✦</div>
+        <div class="qdj-q" id="qdj-question"></div>
+        <div class="qdj-sep"></div>
+        <div class="qdj-answer" id="qdj-answer" style="display:none"></div>
+        <div class="qdj-timer" id="qdj-timer"></div>
+      </div>
+    </div>
+
+    <!-- RAPPELS -->
+    <div id="rappels-slide" class="overlay">
+      <div class="rp-inner">
+        <div class="rp-header">
+          <svg width="26" height="26" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg" opacity=".85">
+            <rect x="5" y="3" width="16" height="20" rx="2" stroke="#C8A951" stroke-width="1.5" fill="none"/>
+            <line x1="9" y1="8" x2="17" y2="8" stroke="#C8A951" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="9" y1="12" x2="17" y2="12" stroke="#C8A951" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="9" y1="16" x2="14" y2="16" stroke="#C8A951" stroke-width="1.2" stroke-linecap="round" opacity=".6"/>
+          </svg>
+          <h2>Rappels opérationnels · NTAA</h2>
+        </div>
+        <div class="rp-grid">
+
+          <!-- Fréquences — radio panel -->
+          <div class="rp-card">
+            <div class="rp-card-hd">
+              <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="10" cy="10" r="3" fill="#C8A951" opacity=".8"/>
+                <path d="M5 10 a5 5 0 0 1 10 0" stroke="#C8A951" stroke-width="1.4" fill="none" opacity=".6"/>
+                <path d="M2 10 a8 8 0 0 1 16 0" stroke="#C8A951" stroke-width="1.2" fill="none" opacity=".35"/>
+              </svg>
+              <h3>Fréquences NTAA</h3>
+            </div>
+            <div class="freq-list">
+              <div class="freq-row"><span class="freq-hz">121.90</span><span class="freq-lbl">Prévol — information pré-vol</span></div>
+              <div class="freq-row"><span class="freq-hz">128.80</span><span class="freq-lbl">ATIS — météo &amp; piste</span></div>
+              <div class="freq-row"><span class="freq-hz">118.10</span><span class="freq-lbl">Tour TWR</span></div>
+              <div class="freq-row"><span class="freq-hz">121.30</span><span class="freq-lbl">Approche APP</span></div>
+              <div class="freq-row"><span class="freq-hz">118.70</span><span class="freq-lbl">Temae TWR</span></div>
+              <div class="freq-row"><span class="freq-hz">121.50</span><span class="freq-lbl">Guard — urgence radio</span></div>
+            </div>
+          </div>
+
+          <!-- Codes transpondeur — squawk display -->
+          <div class="rp-card">
+            <div class="rp-card-hd">
+              <svg width="18" height="18" viewBox="0 0 22 16" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1" y="1" width="20" height="14" rx="2" stroke="#C8A951" stroke-width="1.4" fill="none"/>
+                <text x="11" y="10.5" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="6.5" fill="#C8A951" opacity=".9">XPDR</text>
+              </svg>
+              <h3>Codes transpondeur</h3>
+            </div>
+            <div class="xpdr-list">
+              <div class="xpdr-item vfr"><span class="xpdr-code vfr">7000</span><span class="xpdr-desc">VFR standard</span></div>
+              <div class="xpdr-item emg"><span class="xpdr-code emg">7700</span><span class="xpdr-desc">URGENCE — MAYDAY</span></div>
+              <div class="xpdr-item nrd"><span class="xpdr-code nrd">7600</span><span class="xpdr-desc">Perte radio (NORDO)</span></div>
+              <div class="xpdr-item hj"><span class="xpdr-code hj">7500</span><span class="xpdr-desc">Détournement illicite</span></div>
+            </div>
+          </div>
+
+          <!-- Checklist avant le vol -->
+          <div class="rp-card">
+            <div class="rp-card-hd">
+              <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="2" width="16" height="16" rx="2" stroke="#C8A951" stroke-width="1.4" fill="none"/>
+                <path d="M6 10 l3 3 5-6" stroke="#C8A951" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <h3>Avant le vol</h3>
+            </div>
+            <div class="check-list">
+              <div class="check-item"><div class="check-box"></div><span class="check-text">Consulter METAR · TAF · SIGMET</span></div>
+              <div class="check-item"><div class="check-box"></div><span class="check-text">Vérifier NOTAM NTAA actifs</span></div>
+              <div class="check-item"><div class="check-box"></div><span class="check-text">Rapport pré-vol complet (form C3P)</span></div>
+              <div class="check-item"><div class="check-box warn"></div><span class="check-text warn">Carburant mini : réserve 30 min</span></div>
+            </div>
+          </div>
+
+          <!-- Minimums VFR & dégagement -->
+          <div class="rp-card">
+            <div class="rp-card-hd">
+              <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 14 Q5 6 10 8 Q15 10 18 4" stroke="#C8A951" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                <circle cx="10" cy="8" r="2" fill="rgba(200,169,81,.5)"/>
+                <line x1="2" y1="17" x2="18" y2="17" stroke="#C8A951" stroke-width=".8" opacity=".35"/>
+              </svg>
+              <h3>Minimums VFR &amp; Dégagement</h3>
+            </div>
+            <div class="minfr-list">
+              <div class="minfr-item"><span class="minfr-bullet">›</span><span class="minfr-text">Classe G &lt; 1 000 ft : vis ≥ 1 500 m, sol en vue</span></div>
+              <div class="minfr-item"><span class="minfr-bullet">›</span><span class="minfr-text">Classe G ≥ 1 000 ft : vis ≥ 5 km, 1 500 m H / 300 m V</span></div>
+              <div class="minfr-item"><span class="minfr-bullet">›</span><span class="minfr-text">Dégagement NTTM Moorea — 14 NM ouest</span></div>
+              <div class="minfr-item"><span class="minfr-bullet warn">⚠</span><span class="minfr-text warn">Plan de vol obligatoire (vol maritime)</span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- PDF (TEMSI / WINTEM via pdf.js) -->
+    <div id="pdf-slide" class="overlay">
+      <div id="pdf-spinner">Chargement de la carte…</div>
+      <canvas id="pdf-canvas" style="display:none;"></canvas>
+      <div id="pdf-error" style="display:none;"></div>
+    </div>
+
+    <!-- ESPACES AÉRIENS -->
+    <div id="espaces-slide" class="overlay">
+      <div class="esp-inner">
+        <div class="esp-header">
+          <h2>Espaces aériens — Classes ICAO</h2>
+          <span class="esp-header-sub">AIP Polynésie française · profil vertical NTAA</span>
+        </div>
+        <div class="esp-layout">
+
+          <!-- Profil vertical altimétrique (style AIP ENR 1.4) -->
+          <div class="esp-profile-col">
+            <div class="esp-col-title">Coupe verticale · zone NTAA</div>
+            <div class="esp-profile-wrap">
+              <svg viewBox="0 0 290 310" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+                <defs>
+                  <pattern id="hatchA" patternUnits="userSpaceOnUse" width="8" height="8">
+                    <path d="M-1,1 l3,-3 M0,8 l8,-8 M5,11 l3,-3" stroke="rgba(200,80,60,.3)" stroke-width="1.5"/>
+                  </pattern>
+                </defs>
+                <!-- Colonnes : zone NTAA (x=46–168) · Polynésie hors CTR (x=172–280) -->
+                <!-- Altitudes : y=22=FL195, y=90=FL100, y=181=4500ft, y=221=2500ft, y=280=SFC -->
+
+                <!-- Classe A (FL195+) — toute la largeur -->
+                <rect x="46" y="5" width="234" height="17" fill="url(#hatchA)"/>
+                <rect x="46" y="5" width="234" height="17" fill="rgba(168,68,58,.18)" stroke="rgba(168,68,58,.55)" stroke-width="1.2"/>
+                <text x="163" y="17.5" text-anchor="middle" font-family="Playfair Display,serif" font-size="11" font-weight="700" fill="rgba(220,100,80,.85)">A — IFR UNIQUEMENT · FL 195 et au-dessus</text>
+
+                <!-- Classe D — colonne NTAA (SFC à FL195) -->
+                <rect x="46" y="22" width="122" height="258" fill="rgba(30,70,180,.22)" stroke="rgba(80,120,220,.5)" stroke-width="1.5"/>
+                <!-- Label TMA 1 (partie haute) -->
+                <text x="107" y="78" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(120,160,255,.55)">TMA 1 Papeete</text>
+                <text x="107" y="89" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(120,160,255,.45)">2 500 ft — FL 195</text>
+                <!-- Grand D -->
+                <text x="107" y="162" text-anchor="middle" font-family="Playfair Display,serif" font-size="52" font-weight="700" fill="rgba(80,130,255,.35)">D</text>
+                <!-- Note TMA 2 plancher 4500ft -->
+                <text x="107" y="177" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="6.5" fill="rgba(120,160,255,.3)">TMA 2 : 4 500 ft — FL 195</text>
+                <!-- Ligne CTR/TMA à 2500ft (y=221) -->
+                <line x1="46" y1="221" x2="168" y2="221" stroke="rgba(80,120,220,.5)" stroke-width="1" stroke-dasharray="4,3"/>
+                <!-- Label CTR (partie basse) -->
+                <text x="107" y="236" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(120,160,255,.65)">CTR Papeete</text>
+                <text x="107" y="247" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(120,160,255,.5)">SFC — 2 500 ft</text>
+                <!-- Piste NTAA -->
+                <rect x="88" y="277" width="38" height="6" rx="1.5" fill="rgba(200,169,81,.15)" stroke="rgba(200,169,81,.4)" stroke-width=".8"/>
+                <text x="107" y="272" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(200,169,81,.5)">NTAA</text>
+
+                <!-- Classe G — colonne Polynésie hors CTR (SFC à FL195) -->
+                <rect x="172" y="22" width="108" height="258" fill="rgba(50,110,60,.18)" stroke="rgba(74,122,74,.45)" stroke-width="1.5"/>
+                <!-- Grand G -->
+                <text x="226" y="162" text-anchor="middle" font-family="Playfair Display,serif" font-size="52" font-weight="700" fill="rgba(74,160,74,.3)">G</text>
+                <text x="226" y="130" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(100,180,100,.55)">Non contrôlé</text>
+                <text x="226" y="141" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(100,180,100,.45)">SFC — FL 195</text>
+                <text x="226" y="270" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(100,180,100,.4)">Atolls · Océan</text>
+
+                <!-- Ligne FL100 (VMC ≥ 8 km au-dessus) -->
+                <line x1="46" y1="90" x2="280" y2="90" stroke="rgba(200,169,81,.18)" stroke-width=".8" stroke-dasharray="6,4"/>
+
+                <!-- Sol -->
+                <line x1="46" y1="280" x2="280" y2="280" stroke="rgba(200,169,81,.5)" stroke-width="1.8"/>
+                <rect x="46" y="280" width="234" height="14" fill="rgba(8,16,38,.8)"/>
+
+                <!-- En-têtes colonnes -->
+                <text x="107" y="303" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(200,169,81,.5)">Zone NTAA</text>
+                <text x="226" y="303" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(200,169,81,.4)">Polynésie hors CTR</text>
+
+                <!-- Axe altimétrique — labels -->
+                <text x="42" y="25" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(200,80,60,.7)">FL195</text>
+                <text x="42" y="93" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(200,169,81,.45)">FL100</text>
+                <text x="42" y="184" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(200,169,81,.4)">4 500 ft</text>
+                <text x="42" y="224" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(200,169,81,.5)">2 500 ft</text>
+                <text x="42" y="283" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(200,169,81,.6)">SFC</text>
+
+                <!-- Ticks axe -->
+                <line x1="44" y1="22" x2="46" y2="22" stroke="rgba(200,80,60,.6)" stroke-width="1"/>
+                <line x1="44" y1="90" x2="46" y2="90" stroke="rgba(200,169,81,.4)" stroke-width="1"/>
+                <line x1="44" y1="181" x2="46" y2="181" stroke="rgba(200,169,81,.32)" stroke-width="1"/>
+                <line x1="44" y1="221" x2="46" y2="221" stroke="rgba(200,169,81,.5)" stroke-width="1"/>
+                <line x1="44" y1="280" x2="46" y2="280" stroke="rgba(200,169,81,.5)" stroke-width="1"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Table AIP — classes A→G -->
+          <div class="esp-table-col">
+            <div class="esp-col-title">Tableau de référence ICAO — classes A à G</div>
+            <table class="esp-tbl">
+              <thead>
+                <tr>
+                  <th>Cl.</th>
+                  <th>VFR admis</th>
+                  <th>Clairance VFR</th>
+                  <th>Séparation ATC</th>
+                  <th>Usage Polynésie</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="esp-cls red">A</span></td>
+                  <td><span class="n">✗ Interdit</span></td>
+                  <td style="opacity:.4">—</td>
+                  <td>IFR/IFR · IFR/tous</td>
+                  <td>FL 195 et au-dessus</td>
+                </tr>
+                <tr class="dim">
+                  <td><span class="esp-cls dim">B</span></td>
+                  <td><span class="y">✔</span></td>
+                  <td>Obligatoire</td>
+                  <td>Totale (IFR+VFR)</td>
+                  <td style="font-style:italic;opacity:.5">Non utilisé</td>
+                </tr>
+                <tr class="dim">
+                  <td><span class="esp-cls dim">C</span></td>
+                  <td><span class="y">✔</span></td>
+                  <td>Obligatoire</td>
+                  <td>IFR/IFR · IFR/VFR</td>
+                  <td style="font-style:italic;opacity:.5">Non utilisé</td>
+                </tr>
+                <tr>
+                  <td><span class="esp-cls gold">D</span></td>
+                  <td><span class="y">✔</span></td>
+                  <td>Obligatoire</td>
+                  <td>IFR/IFR seult</td>
+                  <td>CTR/TMA Papeete · Moorea</td>
+                </tr>
+                <tr>
+                  <td><span class="esp-cls gold-s">E</span></td>
+                  <td><span class="y">✔</span></td>
+                  <td>Non requise</td>
+                  <td>IFR/IFR seult</td>
+                  <td>TMA en route</td>
+                </tr>
+                <tr class="dim">
+                  <td><span class="esp-cls dim">F</span></td>
+                  <td><span class="y">✔</span></td>
+                  <td>Non requise</td>
+                  <td>Consultatif IFR</td>
+                  <td style="font-style:italic;opacity:.5">Non utilisé</td>
+                </tr>
+                <tr>
+                  <td><span class="esp-cls grn">G</span></td>
+                  <td><span class="y">✔</span></td>
+                  <td>Non requise</td>
+                  <td>Aucune — voir &amp; éviter</td>
+                  <td>Atolls · inter-îles</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="esp-legend">
+              <div class="esp-legend-item"><div class="esp-swatch" style="background:rgba(200,80,60,.45);border:1px solid rgba(200,80,60,.7)"></div>Classe A — IFR uniquement</div>
+              <div class="esp-legend-item"><div class="esp-swatch" style="background:rgba(80,120,220,.35);border:1px solid rgba(80,120,220,.6)"></div>Classe D — Contrôlé (CTR/TMA)</div>
+              <div class="esp-legend-item"><div class="esp-swatch" style="background:rgba(74,122,74,.3);border:1px solid rgba(74,122,74,.6)"></div>Classe G — Non contrôlé</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- MINIMAS VMC VFR -->
+    <div id="vmc-slide" class="overlay">
+      <div class="vmc-inner">
+        <div class="vmc-header">
+          <h2>Minimas météo VMC — Vol VFR</h2>
+          <span class="vmc-header-sub">ICAO Annex 2 · Arrêté du 3 mars 2006</span>
+        </div>
+        <div class="vmc-layout">
+
+          <!-- GAUCHE : diagramme SVG dégagements nuages -->
+          <div class="vmc-diag-col">
+            <div class="vmc-col-title">Dégagements minimaux</div>
+            <div class="vmc-diag-wrap">
+              <svg viewBox="0 0 280 242" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <marker id="va-s" markerWidth="9" markerHeight="9" refX="4.5" refY="4.5" orient="auto">
+                    <path d="M9,1.5 L1.5,4.5 L9,7.5 Z" fill="rgba(200,169,81,.82)"/>
+                  </marker>
+                  <marker id="va-e" markerWidth="9" markerHeight="9" refX="4.5" refY="4.5" orient="auto">
+                    <path d="M0,1.5 L7.5,4.5 L0,7.5 Z" fill="rgba(200,169,81,.82)"/>
+                  </marker>
+                  <linearGradient id="vmc-sky-g" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#091526"/>
+                    <stop offset="100%" stop-color="#1B2A4A"/>
+                  </linearGradient>
+                </defs>
+
+                <!-- Fond ciel -->
+                <rect x="0" y="0" width="280" height="210" fill="url(#vmc-sky-g)" rx="5"/>
+                <!-- Sol -->
+                <rect x="0" y="210" width="280" height="32" fill="#131D13" rx="0"/>
+                <line x1="0" y1="210" x2="280" y2="210" stroke="rgba(80,120,80,.5)" stroke-width="1.2"/>
+                <text x="10" y="222" font-size="6" fill="rgba(70,110,70,.28)" font-family="monospace">▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪</text>
+
+                <!-- NUAGE (cercles superposés) -->
+                <g fill="rgba(228,236,248,.91)">
+                  <circle cx="82"  cy="71" r="19"/>
+                  <circle cx="103" cy="61" r="23"/>
+                  <circle cx="124" cy="67" r="18"/>
+                  <circle cx="116" cy="55" r="16"/>
+                  <circle cx="98"  cy="53" r="15"/>
+                  <rect x="64" y="70" width="78" height="22"/>
+                </g>
+                <!-- Ombre portée du nuage -->
+                <ellipse cx="103" cy="96" rx="42" ry="3.5" fill="rgba(0,0,0,.14)"/>
+
+                <!-- AVION (vue de côté, proue à droite) -->
+                <g fill="rgba(200,169,81,.88)">
+                  <!-- Fuselage -->
+                  <rect x="160" y="149" width="48" height="5" rx="2.5"/>
+                  <!-- Aile principale -->
+                  <polygon points="177,149 191,130 203,130 203,149"/>
+                  <!-- Stabilisateur horizontal -->
+                  <polygon points="162,149 155,141 165,141 167,149"/>
+                </g>
+
+                <!-- FLÈCHE VERTICALE — 300 m / 1 000 ft -->
+                <!-- Entre base nuage (y=92) et piste avion (y=149), x=46 -->
+                <line x1="46" y1="93" x2="46" y2="148"
+                      stroke="rgba(200,169,81,.8)" stroke-width="1.3"
+                      marker-start="url(#va-s)" marker-end="url(#va-e)"/>
+                <!-- Traits de repère horizontaux -->
+                <line x1="46" y1="92" x2="68" y2="92"
+                      stroke="rgba(200,169,81,.32)" stroke-width=".8" stroke-dasharray="2.5,2"/>
+                <line x1="46" y1="149" x2="160" y2="149"
+                      stroke="rgba(200,169,81,.18)" stroke-width=".8" stroke-dasharray="3,3"/>
+                <!-- Étiquettes -->
+                <text x="42" y="114" font-size="9" fill="rgba(200,169,81,.95)"
+                      font-family="JetBrains Mono,monospace" text-anchor="end" font-weight="600">300 m</text>
+                <text x="42" y="126" font-size="7.5" fill="rgba(200,169,81,.6)"
+                      font-family="JetBrains Mono,monospace" text-anchor="end">1 000 ft</text>
+
+                <!-- FLÈCHE HORIZONTALE — 1 500 m -->
+                <!-- Bord droit nuage x=142, bord gauche avion x=160, à y=71 -->
+                <line x1="143" y1="71" x2="159" y2="71"
+                      stroke="rgba(200,169,81,.8)" stroke-width="1.3"
+                      marker-start="url(#va-s)" marker-end="url(#va-e)"/>
+                <!-- Traits de repère verticaux -->
+                <line x1="142" y1="71" x2="142" y2="92"
+                      stroke="rgba(200,169,81,.3)" stroke-width=".8" stroke-dasharray="2,2"/>
+                <line x1="160" y1="71" x2="160" y2="149"
+                      stroke="rgba(200,169,81,.18)" stroke-width=".8" stroke-dasharray="2,2"/>
+                <!-- Étiquette -->
+                <text x="151" y="64" font-size="9" fill="rgba(200,169,81,.95)"
+                      font-family="JetBrains Mono,monospace" text-anchor="middle" font-weight="600">1 500 m</text>
+
+                <!-- LIGNE DE VISIBILITÉ — 5 000 m -->
+                <line x1="22" y1="152" x2="258" y2="152"
+                      stroke="rgba(200,169,81,.38)" stroke-width="1"
+                      stroke-dasharray="5,4"/>
+                <!-- Flèche terminale -->
+                <polygon points="261,152 254,148.5 254,155.5" fill="rgba(200,169,81,.42)"/>
+                <!-- Étiquette -->
+                <text x="140" y="164" font-size="9" fill="rgba(200,169,81,.7)"
+                      font-family="JetBrains Mono,monospace" text-anchor="middle">&#8805; 5 000 m</text>
+
+                <!-- Repères d'altitude (marge droite) -->
+                <line x1="258" y1="92"  x2="271" y2="92"  stroke="rgba(180,200,230,.2)" stroke-width=".7"/>
+                <line x1="258" y1="149" x2="271" y2="149" stroke="rgba(180,200,230,.2)" stroke-width=".7"/>
+                <text x="273" y="95"  font-size="7" fill="rgba(180,200,230,.42)"
+                      font-family="JetBrains Mono,monospace">FL100</text>
+                <text x="273" y="152" font-size="7" fill="rgba(180,200,230,.42)"
+                      font-family="JetBrains Mono,monospace">SFC</text>
+
+                <!-- Annotation "Nuages" -->
+                <text x="176" y="61" font-size="9" fill="rgba(220,232,248,.62)"
+                      font-family="Source Serif 4,serif" font-style="italic">Nuages</text>
+                <line x1="174" y1="62" x2="144" y2="70"
+                      stroke="rgba(220,232,248,.22)" stroke-width=".8"/>
+
+                <!-- Référence réglementaire -->
+                <text x="140" y="235" font-size="7.5" fill="rgba(200,169,81,.42)"
+                      font-family="JetBrains Mono,monospace" text-anchor="middle" letter-spacing="0.06em">ICAO ANNEX 2 · TABLE 3-1</text>
+              </svg>
+            </div>
+          </div>
+
+          <!-- DROITE : tableau ICAO + notes -->
+          <div class="vmc-data-col">
+            <div class="vmc-col-title">Conditions VMC par classe d'espace</div>
+            <table class="vmc-tbl">
+              <thead>
+                <tr>
+                  <th>Cl.</th>
+                  <th>Altitude</th>
+                  <th>Visibilité</th>
+                  <th>Nuages</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="vmc-dim">
+                  <td><span class="vmc-cls red">A</span></td>
+                  <td style="opacity:.4">—</td>
+                  <td style="font-family:var(--fm);font-size:.78rem;color:#C86E6E;">VFR interdit</td>
+                  <td style="opacity:.3">—</td>
+                </tr>
+                <tr class="vmc-hi">
+                  <td><span class="vmc-cls gold">B C D E</span></td>
+                  <td>&#8805; FL 100</td>
+                  <td>8 km</td>
+                  <td>1 500 m H · 300 m V</td>
+                </tr>
+                <tr class="vmc-hi">
+                  <td><span class="vmc-cls gold">B C D E</span></td>
+                  <td>&lt; FL 100</td>
+                  <td>5 km</td>
+                  <td>1 500 m H · 300 m V</td>
+                </tr>
+                <tr class="vmc-gi">
+                  <td><span class="vmc-cls grn">F G</span></td>
+                  <td>&#8805; 3 000 ft AMSL<br><small style="opacity:.6;font-size:.75em">ou &#8805; 1 000 ft AGL</small></td>
+                  <td>5 km</td>
+                  <td>1 500 m H · 300 m V</td>
+                </tr>
+                <tr class="vmc-gi" style="background:rgba(74,122,74,.1);">
+                  <td><span class="vmc-cls grn">F G</span></td>
+                  <td>&lt; 3 000 ft AMSL<br><small style="opacity:.6;font-size:.75em">et &lt; 1 000 ft AGL</small></td>
+                  <td>5 km</td>
+                  <td>Dégagé · sol en vue</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="vmc-col-title" style="margin-top:.3rem;">Points clés — Polynésie française</div>
+            <div class="vmc-notes">
+              <div class="vmc-note">
+                <div class="vmc-note-title">Espace G — La majorité du territoire</div>
+                <div class="vmc-note-body">Sous 3 000 ft AMSL : <strong>5 km</strong>, dégagé des nuages, <strong>sol en vue</strong>. Minimas augmentés en zones montagneuses.</div>
+              </div>
+              <div class="vmc-note">
+                <div class="vmc-note-title">CTR Papeete — Classe C</div>
+                <div class="vmc-note-body">Sous FL 100 : <strong>5 km</strong> de visibilité, <strong>1 500 m</strong> horizontal et <strong>300 m (1 000 ft)</strong> vertical aux nuages.</div>
+              </div>
+              <div class="vmc-note warn">
+                <div class="vmc-note-title">SVFR · VFR de nuit</div>
+                <div class="vmc-note-body">SVFR : <strong>1 500 m</strong> visible, dégagé des nuages, sol en vue — autorisation ATC requise. VFR nuit : qualification et équipements spécifiques obligatoires.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- CALCUL MENTAL — opérations -->
+    <div id="calc-slide" class="overlay">
+      <div class="calc-inner">
+        <div class="calc-label">✦ &nbsp; Calcul mental &nbsp; ✦</div>
+        <div class="calc-expr" id="calc-expr">—</div>
+        <div class="calc-counter" id="calc-idx"></div>
+      </div>
+    </div>
+
+    <!-- CALCUL MENTAL — résultats -->
+    <div id="calcr-slide" class="overlay">
+      <div class="calc-inner">
+        <div class="calc-label">✦ &nbsp; Résultats &nbsp; ✦</div>
+        <div class="calc-expr" id="calcr-expr">—</div>
+        <div class="calc-counter" id="calcr-idx"></div>
+      </div>
+    </div>
+
+  </div><!-- #stage -->
+  <div id="prog"><div id="prog-fill"></div></div>
+</div>
+<button id="exit-fs" onclick="document.exitFullscreen()">✕ Quitter plein écran</button>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  // ── pdf.js ────────────────────────────────────────────────────────────────
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  // ── Sources météo ─────────────────────────────────────────────────────────
+  const WX_GITHUB = 'https://raw.githubusercontent.com/ihpniggel-cyber/c3p-aviator-hub/main/data/weather-ntaa.json';
+  const WX_METAR  = 'https://aviationweather.gov/api/data/metar?ids=NTAA&format=json&hours=2';
+  const WX_TAF    = 'https://aviationweather.gov/api/data/taf?ids=NTAA&format=json';
+
+  // ── Slides ────────────────────────────────────────────────────────────────
+  const SLIDES = [
+    { id:'accueil', label:'Bonjour les Prépa 2026',               type:'accueil', duration:15000 },
+    { id:'w-sat',   label:'Windy — Satellite · Tahiti',           type:'url',     duration:25000,
+      url:'https://embed.windy.com/embed2.html?lat=-17.65&lon=-149.45&detailLat=-17.65&detailLon=-149.45&zoom=10&level=surface&overlay=satellite&product=satellite&menu=&message=false&marker=false&calendar=now&pressure=false&type=satellite&location=coordinates&detail=false&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1' },
+    { id:'w-wind',  label:'Windy — Vent · Tahiti',                type:'url',     duration:20000,
+      url:'https://embed.windy.com/embed2.html?lat=-17.65&lon=-149.45&detailLat=-17.65&detailLon=-149.45&zoom=10&level=surface&overlay=wind&product=ecmwf&menu=&message=true&marker=false&calendar=now&pressure=true&type=map&location=coordinates&detail=false&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1' },
+    { id:'meteo',   label:'Météo NTAA · METAR & TAF',             type:'meteo',   duration:25000 },
+    { id:'trad',    label:'Traductions · Décryptage METAR/TAF',   type:'trad',    duration:35000 },
+    { id:'temsi',   label:'Carte TEMSI — SFC-FL 450 · Polynésie', type:'pdf', pdfType:'TEMSI',
+      pdfCropLeft:0.06, pdfCropTop:0.02, pdfCropRight:0.0, pdfCropBottom:0.0, duration:30000 },
+    { id:'wintem',  label:'Carte WINTEM FL 20 — Polynésie',        type:'pdf', pdfType:'WINTEM', pdfLabel:'FL 20',
+      pdfCropLeft:0.09, pdfCropTop:0.37, pdfCropRight:0.12, pdfCropBottom:0.0, duration:25000 },
+    { id:'odj',     label:'Ordre du jour — Prépa PPL 2026',       type:'odj',     duration:22000 },
+    { id:'qdj',     label:'Question du jour',                     type:'qdj',     duration:22000 },
+    { id:'rappels', label:'Rappels opérationnels · NTAA',         type:'rappels', duration:15000 },
+    { id:'espaces', label:'Espaces aériens — Classes ICAO',        type:'espaces', duration:30000 },
+    { id:'vmc',     label:'Minimas VMC · Vol VFR',                 type:'vmc',     duration:25000 },
+    { id:'calc',    label:'Calcul mental — Entraînement',          type:'calc',    duration:30000 },
+    { id:'calcr',   label:'Calcul mental — Résultats',             type:'calcr',   duration:18000 },
+  ];
+
+  // ── Questions ─────────────────────────────────────────────────────────────
+  const QUESTIONS = [
+    { q:"Quelle est la différence entre un QNH et un QFE ?",
+      r:"QNH : pression ramenée au niveau de la mer (MSL). L'altimètre affiche l'altitude. Réglage standard en FPF.\n\nQFE : pression au niveau du seuil de piste. L'altimètre affiche la hauteur — il revient à zéro quand l'avion est posé. Rare en Polynésie française." },
+    { q:"Qu'est-ce qu'un METAR et quelle est sa durée de validité ?",
+      r:"METAR : observation météorologique réelle à l'aérodrome, émise à heure fixe.\n\nValidité : 1 heure (30 min si émis à la demi-heure). À NTAA : émis toutes les 30 min ou 1h selon l'activité." },
+    { q:"Que signifie CAVOK dans un METAR ?",
+      r:"CAVOK (Ceiling And Visibility OK) regroupe 3 conditions :\n• Visibilité ≥ 10 km\n• Pas de nuage sous 5 000 ft ni d'amas cumuliforme\n• Pas de précipitation, orage ou phénomène significatif\n\nUn seul mot remplace plusieurs groupes." },
+    { q:"Dans un METAR, que représentent FEW, SCT, BKN et OVC ?",
+      r:"Ces codes expriment la couverture nuageuse en octas :\n• FEW  1–2 octas — quelques nuages\n• SCT  3–4 octas — nuages épars\n• BKN  5–7 octas — couche nuageuse\n• OVC  8 octas   — couvert total\n\nEx : FEW025 = quelques nuages à 2 500 ft AGL." },
+    { q:"Comment détermine-t-on la piste en service à NTAA ?",
+      r:"On compare le cap magnétique du vent aux axes des deux pistes (RWY 04 = 040° / RWY 22 = 220°).\n\nOn choisit la piste dont l'axe est le plus proche du vent de face.\n\nAlizé dominant à Tahiti : secteur Est → piste 04 généralement en service. Toujours vérifier l'ATIS (128.80)." },
+    { q:"Qu'est-ce que le point de rosée et pourquoi est-il important ?",
+      r:"Le point de rosée est la température à laquelle l'air se sature et forme nuages ou brouillard.\n\nSi l'écart T° / rosée < 3°C → risque élevé de brouillard ou de nuages bas.\n\nRègle rapide : base des nuages ≈ (T – Td) × 400 ft AGL." },
+    { q:"Que signifient BECMG et TEMPO dans un TAF ?",
+      r:"• BECMG (Becoming) : changement GRADUEL et PERMANENT. Les conditions évoluent progressivement sur la période indiquée.\n\n• TEMPO (Temporary) : changement TEMPORAIRE, moins de 30 min consécutives, moins de 50% de la période." },
+    { q:"À quoi correspondent les codes transpondeur 7000, 7700, 7600 et 7500 ?",
+      r:"• 7000 → VFR standard\n• 7700 → Urgence (MAYDAY)\n• 7600 → Panne radio (NORDO)\n• 7500 → Détournement illicite\n\nMnémotechnique : 77 = crève le plafond / 76 = plus de son / 75 = sous la menace" },
+    { q:"Quels sont les minimums VFR en espace aérien de classe G ?",
+      r:"Classe G sous 1 000 ft AGL :\n• Visibilité ≥ 1 500 m · Hors des nuages et en vue du sol\n\nAu-dessus de 1 000 ft AGL :\n• Vis ≥ 5 km\n• 1 000 ft vertical / 1 500 m horizontal des nuages" },
+    { q:"Quelle est la différence entre l'altitude et la hauteur ?",
+      r:"• Altitude : distance verticale au-dessus du niveau moyen de la mer (MSL). Calage QNH.\n\n• Hauteur : distance verticale au-dessus d'un point local (sol, seuil de piste). Calage QFE.\n\nExemple : NTAA est à 4 ft MSL. Altitude 1 004 ft = hauteur 1 000 ft." },
+    { q:"Qu'est-ce que la composante vent de travers ?",
+      r:"La composante perpendiculaire à l'axe de piste.\n\nFormule approchée : composante travers ≈ V × sin(angle vent/piste)\n• Angle 30° → ~50% du vent\n• Angle 45° → ~70%\n• Angle 90° → 100% (plein travers)\n\nPA28 : limite démo ≈ 17 kt de vent de travers." },
+    { q:"Quand doit-on déposer un plan de vol VFR en Polynésie française ?",
+      r:"Plan de vol obligatoire en FPF pour :\n• Tout vol au-dessus de la mer (ex : NTAA → NTTM Moorea)\n• Vol de nuit VFR\n• Entrée dans certains espaces contrôlés\n\nSi non clôturé à l'heure → déclenche les secours." },
+    { q:"Quel carburant utilise le PA28 Cherokee et comment le reconnaître ?",
+      r:"Le PA28 utilise l'AVGAS 100LL (Low Lead).\n\nCouleur : BLEUE — indispensable pour ne pas confondre avec le Jet A-1 (incolore/jaunâtre) qui détruirait le moteur.\n\nToujours vérifier la couleur lors de la jaugeuse AVANT chaque vol." },
+    { q:"Quelles sont les vitesses de référence du PA28-140 à connaître ?",
+      r:"À la masse maximale (MTOW ≈ 975 kg) :\n• Vso ≈ 57 kt — décrochage volets sortis\n• Vs1 ≈ 64 kt — décrochage volets rentrés\n• Vx ≈ 82 kt — montée à pente max\n• Vy ≈ 87 kt — montée à taux max\n• Vfe ≈ 111 kt — vitesse max volets\n• Vne ≈ 161 kt — à ne jamais dépasser" },
+    { q:"Que signifient les feux lumineux de la tour vers un avion au sol ?",
+      r:"• Vert fixe → autorisé au décollage\n• Vert clignotant → autorisé à rouler\n• Rouge fixe → STOP\n• Rouge clignotant → dégager la piste\n• Blanc clignotant → retournez au parking\n\nÀ apprendre par cœur pour les pannes radio." },
+    { q:"Qu'est-ce que la check-list IMSAFE ?",
+      r:"• I – Illness · M – Medication · S – Stress\n• A – Alcohol (< 8h) · F – Fatigue · E – Eating\n\nSi l'un est en défaut → NE PAS VOLER." },
+    { q:"Qu'est-ce qu'un TAF et sur quelle durée s'étend-il ?",
+      r:"TAF (Terminal Aerodrome Forecast) : prévision météo établie par les services météo.\n\nDurée : 24h à NTAA, émis 4 fois par jour (00, 06, 12, 18 UTC). Ne pas confondre avec le METAR qui est une observation réelle." },
+    { q:"Dans quel sens est le tour de piste standard et à quelle hauteur ?",
+      r:"Tour de piste standard : sens ANTI-HORAIRE (virage à gauche après le décollage).\n\nHauteur standard : 1 000 ft AGL.\n\nÀ NTAA : circuit piste 04 à gauche. Toujours écouter l'ATIS et suivre les consignes TWR." },
+    { q:"Pourquoi appauvrit-on le mélange sur le PA28 en altitude ?",
+      r:"En altitude, l'air est moins dense. Avec le mélange FULL RICH, il y a trop de carburant pour trop peu d'air → perte de puissance, surconsommation, encrassement.\n\nL'appauvrissement (Mixture) rétablit le rapport idéal.\n\nRègle pratique C3P : au-dessus de 3 000 ft." },
+    { q:"Que vérifies-tu en priorité lors de la jaugeuse carburant sur le PA28 ?",
+      r:"1. Quantité dans chaque réservoir\n2. Couleur BLEUE = AVGAS 100LL ✓\n3. Absence d'eau (pomper ≥ 1 L par drain)\n4. Bouchon fermé et verrouillé\n5. Ventilation dégagée\n\nRègle C3P : réserve ≥ 30 min après l'heure d'arrivée prévue." },
+  ];
+
+  // ── Planning ──────────────────────────────────────────────────────────────
+  var FLIGHT_DAYS = [
+    {date:'2026-08-31',type:'theory',activity:"Théorie · Jour 1 — Accueil promotion · PDP 1,5,6,10",slots:[]},
+    {date:'2026-09-01',type:'theory',activity:"Théorie · Jour 2 — PDP 8,9,12,14",slots:[]},
+    {date:'2026-09-02',type:'theory',activity:"Théorie · Jour 3 — PDP 15,16,7",slots:[]},
+    {date:'2026-09-03',type:'theory',activity:"Théorie · Jour 4 — PDP 17,21",slots:[]},
+    {date:'2026-09-04',type:'theory',activity:"Théorie · Jour 5 — PDP 18,19,20",slots:[]},
+    {date:'2026-09-07',type:'theory',activity:"Théorie · Jour 6 — PDP 23,24,25,26",slots:[]},
+    {date:'2026-09-08',type:'theory',activity:"Théorie · Jour 7 — PDP 27,28,29,30,31,33",slots:[]},
+    {date:'2026-09-09',type:'theory',activity:"Théorie · Jour 8 — Veille du 1er vol ✈  PDP 34,32,52,59,37,39",slots:[]},
+    {date:'2026-09-10',activity:"1ers vols DC : mise en route, roulage, décollage, tour de piste, effets moteurs",slots:[{h:'07h00',e:'E1'},{h:'08h15',e:'E2'},{h:'09h30',e:'E3'},{h:'10h45',e:'E4'}]},
+    {date:'2026-09-11',activity:"Tours de piste, PTE/PTU, consolidation roulage-décollage-atterrissage",slots:[{h:'07h00',e:'E7'},{h:'08h15',e:'E1'},{h:'09h30',e:'E2'},{h:'10h45',e:'E6'}]},
+    {date:'2026-09-14',activity:"Virages en circuit, symétrie",slots:[{h:'07h00',e:'E6'},{h:'08h15',e:'E7'},{h:'09h30',e:'E4'},{h:'10h45',e:'E5'}]},
+    {date:'2026-09-15',activity:"Vol lent, approche du décrochage configuration lisse",slots:[{h:'07h00',e:'E5'},{h:'08h15',e:'E2'},{h:'09h30',e:'E3'},{h:'10h45',e:'E4'}]},
+    {date:'2026-09-16',activity:"Décrochage franc (lisse et approche), sortie virage engagé",slots:[{h:'07h00',e:'E7'},{h:'08h15',e:'E1'},{h:'09h30',e:'E2'},{h:'10h45',e:'E3'}]},
+    {date:'2026-09-17',activity:"Point d'étape DC sur bloc PDP 17–33",slots:[{h:'07h00',e:'E6'},{h:'08h15',e:'E7'},{h:'09h30',e:'E1'},{h:'10h45',e:'E5'}]},
+    {date:'2026-09-18',activity:"Perfectionnement circuit, touchés-décollés multiples",slots:[{h:'07h00',e:'E5'},{h:'08h15',e:'E6'},{h:'09h30',e:'E3'},{h:'10h45',e:'E4'}]},
+    {date:'2026-09-21',activity:"Maniabilité avancée : montées, décollage court, moteur réduit",slots:[{h:'07h00',e:'E4'},{h:'08h15',e:'E1'},{h:'09h30',e:'E2'},{h:'10h45',e:'E3'}]},
+    {date:'2026-09-22',activity:"Vol vers Moorea en DC, survol maritime",slots:[{h:'07h00',e:'E6'},{h:'08h15',e:'E7'},{h:'09h30',e:'E1'},{h:'10h45',e:'E2'}]},
+    {date:'2026-09-23',activity:"Consolidation maniabilité, transition vers la navigation",slots:[{h:'07h00',e:'E5'},{h:'08h15',e:'E6'},{h:'09h30',e:'E7'},{h:'10h45',e:'E4'}]},
+    {date:'2026-09-24',activity:"Premiers exercices de navigation en DC",slots:[{h:'07h00',e:'E4'},{h:'08h15',e:'E5'},{h:'09h30',e:'E2'},{h:'10h45',e:'E3'}]},
+    {date:'2026-09-25',activity:"Navigation locale, estime et cheminement",slots:[{h:'07h00',e:'E3'},{h:'08h15',e:'E7'},{h:'09h30',e:'E1'},{h:'10h45',e:'E2'}]},
+    {date:'2026-09-28',activity:"Navigation avec scénario de déroutement",slots:[{h:'07h00',e:'E5'},{h:'08h15',e:'E6'},{h:'09h30',e:'E7'},{h:'10h45',e:'E1'}]},
+    {date:'2026-09-29',activity:"Navigation, exercice perte références extérieures",slots:[{h:'07h00',e:'E4'},{h:'08h15',e:'E5'},{h:'09h30',e:'E6'},{h:'10h45',e:'E3'}]},
+    {date:'2026-09-30',activity:"Navigation de synthèse, bilan individuel",slots:[{h:'07h00',e:'E3'},{h:'08h15',e:'E4'},{h:'09h30',e:'E1'},{h:'10h45',e:'E2'}]},
+    {date:'2026-10-01',activity:"Poursuite navigation selon acquis constatés",slots:[{h:'07h00',e:'E2'},{h:'08h15',e:'E6'},{h:'09h30',e:'E7'},{h:'10h45',e:'E1'}]},
+    {date:'2026-10-02',activity:"Poursuite navigation en double commande",slots:[{h:'07h00',e:'E4'},{h:'08h15',e:'E5'},{h:'09h30',e:'E6'},{h:'10h45',e:'E7'}]},
+  ];
+
+  // ╔═════════════════════════════════════╗
+  // ║  MÉTÉO — FETCH & ÉTAT             ║
+  // ╚═════════════════════════════════════╝
+  let WX = { metarStr:null, tafStr:null, aeroweb:null, ts:null };
+
+  function parseMETARtoObj(raw) {
+    const d = { rwy:'?', wind:'—', vis:'—', clouds:'—', temp:'—', qnh:'—' };
+    if (!raw) return d;
+    const main = raw.replace(/=\s*$/, '').split(/\s+(?:BECMG|TEMPO|FM\d|RMK)\b/)[0];
+    const wm = main.match(/\b(VRB|\d{3})(\d{2,3})(G(\d{2,3}))?(KT|MPS)\b/);
+    if (wm) {
+      const dir = wm[1]==='VRB'?null:+wm[1], spd=+wm[2], gst=wm[4]?+wm[4]:null;
+      d.rwy = dir===null?'?':(Math.abs(((dir-40+180+360)%360)-180)<=Math.abs(((dir-220+180+360)%360)-180)?'04':'22');
+      const ds = dir===null?'Variable':String(dir).padStart(3,'0')+'°';
+      d.wind = (spd===0&&!gst)?'Calme':`${ds} · ${spd} kt${gst?` (rafales ${gst} kt)`:''}`;
+    }
+    if (main.includes('CAVOK')) { d.vis='≥ 10 km (CAVOK)'; }
+    else if (/\b9999\b/.test(main)) { d.vis='≥ 10 km'; }
+    else { const cut=main.search(/\b(?:FEW|SCT|BKN|OVC|VV|SKC|CLR|NCD|NSC)\b/); const pre=cut>0?main.slice(0,cut):main; const vm=pre.match(/\b(\d{4})\b/); if(vm){const v=+vm[1]; d.vis=v>=1000?(v/1000).toFixed(1)+' km':v+' m';} }
+    if (main.includes('CAVOK')||/\b(SKC|CLR|NCD|NSC)\b/.test(main)) { d.clouds='Ciel dégagé'; }
+    else { const LB={FEW:'Quelques (1-2 oct.)',SCT:'Épars (3-4 oct.)',BKN:'Couche (5-7 oct.)',OVC:'Couvert (8 oct.)',VV:'Vis. verticale'}; const p=[]; let cm; const re=/\b(FEW|SCT|BKN|OVC|VV)\s?(\d{3})(CB|TCU)?\b/g; while((cm=re.exec(main))!==null){const a=+cm[2]*100; p.push(`${LB[cm[1]]||cm[1]} à ${a.toLocaleString('fr')} ft${cm[3]==='CB'?' ⚡CB':cm[3]==='TCU'?' TCU':''}`);}  d.clouds=p.length?p.join(' · '):'Ciel dégagé'; }
+    const tm=main.match(/\b(M?\d{2})\/(M?\d{2})\b/); if(tm){const p=x=>x.startsWith('M')?-parseInt(x.slice(1)):+x; d.temp=`${p(tm[1])}°C / Td ${p(tm[2])}°C`;}
+    const qm=main.match(/\bQ(\d{4})\b/); if(qm) d.qnh=`${qm[1]} hPa`;
+    return d;
+  }
+
+  function parseMETARfull(raw) {
+    const out = { cavok:false, clear:false, wind:null, vis:null, clouds:[], temp:null, dew:null, qnh:null };
+    if (!raw) return out;
+    const main = raw.replace(/=\s*$/, '').split(/\s+(?:BECMG|TEMPO|FM\d{6}|RMK)\b/)[0];
+    out.cavok = /\bCAVOK\b/.test(main);
+    out.clear = /\b(SKC|CLR|NCD|NSC)\b/.test(main);
+    const wm = main.match(/\b(VRB|\d{3})(\d{2,3})(G(\d{2,3}))?(KT|MPS)\b/);
+    if (wm) out.wind = { dir: wm[1]==='VRB'?null:+wm[1], spd:+wm[2], gust:wm[4]?+wm[4]:null };
+    if (out.cavok || /\b9999\b/.test(main)) out.vis = 9999;
+    else { const vm = main.match(/\b(\d{4})\b/); if (vm) out.vis = +vm[1]; }
+    if (!out.cavok && !out.clear) {
+      const re = /\b(FEW|SCT|BKN|OVC|VV)\s?(\d{3})(CB|TCU)?\b/g; let m;
+      while ((m = re.exec(main)) !== null) out.clouds.push({ type:m[1], alt:+m[2]*100, cb:m[3]||null });
+    }
+    const tm = main.match(/\b(M?\d{2})\/(M?\d{2})\b/);
+    if (tm) { const p=x=>x.startsWith('M')?-parseInt(x.slice(1)):+x; out.temp=p(tm[1]); out.dew=p(tm[2]); }
+    const qm = main.match(/\bQ(\d{4})\b/); if (qm) out.qnh=+qm[1];
+    return out;
+  }
+
+  // ── Coupe météo illustrée (FL090 max) ────────────────────────────────────
+  function renderWXIllus() {
+    const el = document.getElementById('wx-illus');
+    if (!el) return;
+    const W = el.clientWidth || 900;
+    const H = el.clientHeight || 280;
+    if (W < 100 || H < 60) { setTimeout(renderWXIllus, 200); return; }
+
+    const wx = parseMETARfull(WX.metarStr);
+
+    const PL = 54, PR = 72, PT = 10, PB = 32;
+    const DW = W - PL - PR, DH = H - PT - PB;
+    const MAX = 9000; // FL090 max
+    const ay = a => PT + DH * (1 - Math.min(Math.max(a,0), MAX) / MAX);
+    const GY = ay(0);
+
+    let s = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">`;
+    s += `<defs>
+      <linearGradient id="ilsky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#04091c"/>
+        <stop offset="65%" stop-color="#0d1828"/>
+        <stop offset="100%" stop-color="#141f35"/>
+      </linearGradient>
+      <clipPath id="ilclip"><rect x="${PL}" y="${PT}" width="${DW}" height="${DH}"/></clipPath>
+    </defs>`;
+    s += `<rect x="${PL}" y="${PT}" width="${DW}" height="${DH + PB}" fill="url(#ilsky)"/>`;
+
+    // Grid FL030, FL060, FL090
+    for (let a = 3000; a <= MAX; a += 3000) {
+      const y = ay(a);
+      s += `<line x1="${PL}" y1="${y}" x2="${PL+DW}" y2="${y}" stroke="rgba(200,169,81,.09)" stroke-width="1" stroke-dasharray="3,8"/>`;
+      s += `<text x="${PL-4}" y="${y+3.5}" font-family="JetBrains Mono,monospace" font-size="8.5" fill="rgba(200,169,81,.42)" text-anchor="end">FL${String(a/100).padStart(3,'0')}</text>`;
+    }
+    s += `<text x="${PL-4}" y="${GY+3.5}" font-family="JetBrains Mono,monospace" font-size="8.5" fill="rgba(200,169,81,.42)" text-anchor="end">SFC</text>`;
+
+    // Ground
+    s += `<rect x="${PL}" y="${GY}" width="${DW}" height="${H-GY}" fill="rgba(8,18,40,.9)"/>`;
+    s += `<line x1="${PL}" y1="${GY}" x2="${PL+DW}" y2="${GY}" stroke="rgba(200,169,81,.4)" stroke-width="1.5"/>`;
+
+    // Runway
+    const rwCX = PL + DW * 0.5, rwW = Math.min(DW * 0.065, 68), rwH = 8;
+    s += `<rect x="${rwCX-rwW/2}" y="${GY-rwH/2-1}" width="${rwW}" height="${rwH}" rx="2" fill="rgba(200,169,81,.15)" stroke="rgba(200,169,81,.38)" stroke-width="1"/>`;
+    for (let i = 0; i < 4; i++) {
+      const dx = (i - 1.5) * rwW / 4.5;
+      s += `<rect x="${rwCX+dx-1.5}" y="${GY-2}" width="3" height="4" rx="1" fill="rgba(200,169,81,.45)"/>`;
+    }
+    s += `<text x="${rwCX}" y="${GY+PB-6}" font-family="JetBrains Mono,monospace" font-size="8.5" fill="rgba(200,169,81,.45)" text-anchor="middle">NTAA · RWY 04/22</text>`;
+
+    // Sun — toujours affiché quand aucun nuage visible sous FL090
+    const hasVisibleClouds = wx.clouds.some(cl => cl.alt <= MAX);
+    if (!hasVisibleClouds) {
+      const sx = PL + DW - 44, sy = PT + 30;
+      const sunOp = wx.cavok ? 0.5 : wx.clear ? 0.42 : 0.3;
+      s += `<circle cx="${sx}" cy="${sy}" r="15" fill="rgba(200,169,81,${sunOp*0.45})" stroke="rgba(200,169,81,${sunOp*0.8})" stroke-width="1.5"/>`;
+      for (let r = 0; r < 8; r++) {
+        const a = r * Math.PI / 4; const r1 = 19, r2 = 26;
+        s += `<line x1="${sx+Math.cos(a)*r1}" y1="${sy+Math.sin(a)*r1}" x2="${sx+Math.cos(a)*r2}" y2="${sy+Math.sin(a)*r2}" stroke="rgba(200,169,81,${sunOp*0.8})" stroke-width="1.5" stroke-linecap="round"/>`;
+      }
+      const skyLabel = !WX.metarStr ? 'NTAA' : wx.cavok ? 'CAVOK' : wx.clear ? 'SKC' : 'DÉGAGÉ';
+      s += `<text x="${sx}" y="${sy+40}" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(200,169,81,${sunOp})" text-anchor="middle">${skyLabel}</text>`;
+    }
+
+    // Clouds (only those at or below FL090)
+    // Largeur proportionnelle aux octas réels : FEW=1-2/8, SCT=3-4/8, BKN=5-7/8, OVC=8/8
+    const COVER  = { FEW:0.13, SCT:0.28, BKN:0.68, OVC:0.97, VV:0.80 };
+    const OPAC   = { FEW:0.24, SCT:0.40, BKN:0.58, OVC:0.76, VV:0.66 };
+    const NPUFFS = { FEW:2,    SCT:3,    BKN:6,    OVC:11,   VV:5   };
+    for (const cl of wx.clouds) {
+      if (cl.alt > MAX) continue;
+      const cy = ay(cl.alt);
+      if (cy < PT - 10 || cy > GY + 5) continue;
+      const cov = COVER[cl.type] || 0.28, op = OPAC[cl.type] || 0.40;
+      const cw = DW * cov, cx = PL + (DW - cw) / 2;
+      const bH = 16 + cov * 18;
+      const fill = cl.cb ? `rgba(80,48,108,` : `rgba(110,148,180,`;
+      s += `<rect x="${cx}" y="${cy-bH*0.38}" width="${cw}" height="${bH}" rx="${bH*0.48}" fill="${fill}${op*0.65})" clip-path="url(#ilclip)"/>`;
+      const nP = NPUFFS[cl.type] || 3;
+      for (let i = 0; i < nP; i++) {
+        const px = cx + (i + 0.5) * cw / nP;
+        const pr = (cw / nP) * (0.44 + 0.20 * Math.abs(Math.sin(i * 2.1 + cl.alt / 800)));
+        s += `<ellipse cx="${px}" cy="${cy-bH*0.52}" rx="${pr}" ry="${pr*0.55}" fill="${fill}${op})" clip-path="url(#ilclip)"/>`;
+      }
+      s += `<text x="${cx-5}" y="${cy+3.5}" font-family="JetBrains Mono,monospace" font-size="8.5" fill="rgba(212,187,110,.85)" text-anchor="end">${cl.type}${cl.cb==='CB'?' ⚡':cl.cb==='TCU'?' ↑':''}</text>`;
+      const altStr = cl.alt>=1000 ? `${(cl.alt/100).toFixed(0)}00 ft` : `${cl.alt} ft`;
+      s += `<text x="${PL+DW+5}" y="${cy+3.5}" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(212,187,110,.55)">${altStr}</text>`;
+    }
+
+    if (!WX.metarStr) {
+      s += `<text x="${PL+DW/2}" y="${PT+DH/2}" font-family="JetBrains Mono,monospace" font-size="10" fill="rgba(200,169,81,.25)" text-anchor="middle">Données METAR en cours de chargement…</text>`;
+    }
+
+    // Wind indicator
+    const wX = PL + 30, wY = GY - 26;
+    if (wx.wind) {
+      const { dir, spd, gust } = wx.wind;
+      if (spd === 0 || dir === null) {
+        s += `<circle cx="${wX}" cy="${wY}" r="10" fill="none" stroke="rgba(200,169,81,.45)" stroke-width="1.5"/>`;
+        s += `<circle cx="${wX}" cy="${wY}" r="2.5" fill="rgba(200,169,81,.5)"/>`;
+        s += `<text x="${wX}" y="${wY+20}" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(200,169,81,.6)" text-anchor="middle">CALME</text>`;
+      } else {
+        const tr = ((dir + 180) % 360) * Math.PI / 180;
+        const L = 18;
+        const tx = wX + Math.sin(tr) * L, ty = wY - Math.cos(tr) * L;
+        s += `<line x1="${wX}" y1="${wY}" x2="${tx}" y2="${ty}" stroke="rgba(200,169,81,.8)" stroke-width="2" stroke-linecap="round"/>`;
+        const br = dir * Math.PI / 180, ha = 0.38;
+        s += `<line x1="${tx}" y1="${ty}" x2="${tx+Math.sin(br+ha)*8}" y2="${ty-Math.cos(br+ha)*8}" stroke="rgba(200,169,81,.8)" stroke-width="1.5" stroke-linecap="round"/>`;
+        s += `<line x1="${tx}" y1="${ty}" x2="${tx+Math.sin(br-ha)*8}" y2="${ty-Math.cos(br-ha)*8}" stroke="rgba(200,169,81,.8)" stroke-width="1.5" stroke-linecap="round"/>`;
+        s += `<text x="${wX}" y="${wY+22}" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(200,169,81,.7)" text-anchor="middle">${String(dir).padStart(3,'0')}° ${spd}${gust?'G'+gust:''}kt</text>`;
+      }
+    }
+
+    // Visibility bar
+    if (wx.vis !== null) {
+      const vf = Math.min(wx.vis, 9999) / 9999;
+      const vx = PL + DW * 0.08, vw = DW * 0.36, vy = GY - 7;
+      const vc = wx.vis >= 5000 ? 'rgba(70,190,110,.35)' : wx.vis >= 1500 ? 'rgba(200,150,60,.45)' : 'rgba(190,70,70,.45)';
+      s += `<rect x="${vx}" y="${vy}" width="${vw}" height="4" rx="2" fill="rgba(200,169,81,.08)"/>`;
+      s += `<rect x="${vx}" y="${vy}" width="${vw*vf}" height="4" rx="2" fill="${vc}"/>`;
+      const vs = wx.vis >= 9999 ? '≥ 10 km' : wx.vis >= 1000 ? `${(wx.vis/1000).toFixed(1)} km` : `${wx.vis} m`;
+      s += `<text x="${vx+vw+6}" y="${vy+3.5}" font-family="JetBrains Mono,monospace" font-size="8.5" fill="rgba(200,169,81,.65)">Vis ${vs}</text>`;
+    }
+
+    // T/Td + QNH
+    const ix = PL + DW - 5;
+    if (wx.temp !== null) {
+      const sp = wx.temp - (wx.dew !== null ? wx.dew : wx.temp);
+      const tc = sp < 3 ? '#df7a3a' : 'rgba(212,187,110,.85)';
+      const sign = v => v >= 0 ? `+${v}` : String(v);
+      s += `<text x="${ix}" y="${GY-20}" font-family="JetBrains Mono,monospace" font-size="9" fill="${tc}" text-anchor="end">T ${sign(wx.temp)}°  Td ${wx.dew!==null?sign(wx.dew):'?'}°</text>`;
+      if (sp < 3) s += `<text x="${ix}" y="${GY-9}" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(220,120,58,.75)" text-anchor="end">⚠ écart ${sp}°C — brouillard possible</text>`;
+    }
+    if (wx.qnh) {
+      const qc = wx.qnh < 1010 ? '#df7a3a' : 'rgba(200,169,81,.7)';
+      s += `<text x="${ix}" y="${GY+PB-6}" font-family="JetBrains Mono,monospace" font-size="9" fill="${qc}" text-anchor="end">QNH ${wx.qnh} hPa</text>`;
+    }
+
+    s += '</svg>';
+    el.innerHTML = s;
+  }
+
+  async function fetchWX() {
+    let metarStr = null, tafStr = null;
+    try {
+      const r = await fetch(WX_GITHUB, {cache:'no-store'});
+      const d = await r.json();
+      if (d.metar_raw)    metarStr = d.metar_raw;
+      if (d.taf_raw)      tafStr   = d.taf_raw;
+      if (d.aeroweb_ntaa) WX.aeroweb = d.aeroweb_ntaa;
+      if (d.updated_utc)  WX.ts = d.updated_utc;
+    } catch(e) {}
+    if (!metarStr) {
+      try { const r=await fetch(WX_METAR); const d=await r.json(); if(d?.[0]?.rawOb) metarStr=d[0].rawOb; } catch(e) {}
+    }
+    if (!tafStr) {
+      try { const r=await fetch(WX_TAF); const d=await r.json(); if(d?.[0]?.rawTAF) tafStr=d[0].rawTAF; } catch(e) {}
+    }
+    WX.metarStr = metarStr;
+    WX.tafStr   = tafStr;
+    applyWX();
+    if (SLIDES[idx] && SLIDES[idx].type === 'pdf') showPDF(SLIDES[idx]);
+  }
+
+  function set(id, val) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val || '—';
+    el.classList.remove('spin');
+  }
+
+  function applyWX() {
+    if (WX.metarStr) {
+      const m = parseMETARtoObj(WX.metarStr);
+      set('a-rwy', `Piste ${m.rwy}`); set('a-wind', m.wind); set('a-cld', m.clouds); set('a-qnh', m.qnh);
+      set('w-rwy', `Piste ${m.rwy}`); set('w-wind', m.wind); set('w-vis', m.vis);
+      set('w-cld', m.clouds); set('w-temp', m.temp); set('w-qnh', m.qnh);
+      document.getElementById('w-raw').textContent = WX.metarStr;
+    } else {
+      ['a-rwy','a-wind','a-cld','a-qnh','w-rwy','w-wind','w-vis','w-cld','w-temp','w-qnh'].forEach(id => set(id,'indisponible'));
+    }
+    const tf = WX.tafStr
+      ? WX.tafStr.replace(/\s+(BECMG|TEMPO|FM\d{6}|PROB\d+\s+TEMPO|PROB\d+)/g, '\n$1').trim()
+      : 'TAF indisponible';
+    document.getElementById('w-taf').textContent = tf;
+    if (WX.ts) document.getElementById('wx-ts').textContent = WX.ts.replace('T',' ').replace('Z',' UTC');
+    renderTrad();
+    renderWXIllus();
+  }
+
+  fetchWX();
+  setInterval(fetchWX, 30 * 60 * 1000);
+
+  // ╔═════════════════════════════════════╗
+  // ║  PARSEURS METAR & TAF (trad.)     ║
+  // ╚═════════════════════════════════════╝
+  function parseMETAR(raw){
+    if(!raw) return [];
+    const rows=[];
+    for(const t of raw.trim().split(/\s+/)){
+      if(!t) continue;
+      if(t==='METAR'||t==='SPECI'){ rows.push({code:t,lbl:'Type',det:t==='METAR'?'Observation horaire régulière':'Observation spéciale'}); }
+      else if(/^[A-Z]{4}$/.test(t)&&!['AUTO','NIL','NOSIG','TEMPO','BECMG'].includes(t)){ rows.push({code:t,lbl:'OACI',det:t==='NTAA'?'Tahiti-Faaa — Polynésie française':'Aérodrome'}); }
+      else if(/^\d{6}Z$/.test(t)){ rows.push({code:t,lbl:'Date/Heure UTC',det:`Le ${t.slice(0,2)} à ${t.slice(2,4)}h${t.slice(4,6)} UTC`}); }
+      else if(/^(VRB|\d{3})\d{2,3}(G\d{2,3})?(KT|MPS)$/.test(t)){ const m=t.match(/^(VRB|(\d{3}))(\d{2,3})(G(\d{2,3}))?(KT|MPS)$/); if(m){ const dir=m[1]==='VRB'?'Variable':`${m[2]}° mag.`; const u=m[6]==='MPS'?'m/s':'kt'; rows.push({code:t,lbl:'Vent',det:`${dir} · ${m[3]} ${u}`+(m[5]?` · Rafales ${m[5]} ${u}`:'')}); } }
+      else if(t==='9999'){ rows.push({code:t,lbl:'Visibilité',det:'≥ 10 000 m — excellent VFR'}); }
+      else if(t==='CAVOK'){ rows.push({code:t,lbl:'CAVOK',det:'Vis ≥ 10 km · pas de nuage < 5 000 ft · aucun phénomène significatif'}); }
+      else if(/^\d{4}$/.test(t)){ const v=+t; rows.push({code:t,lbl:'Visibilité',det:`${v} m`+(v<1500?' ⚠ sous minimum VFR':'')}); }
+      else if(/^(FEW|SCT|BKN|OVC|VV)\d{3}(CB|TCU)?$/.test(t)){ const cv={FEW:'1-2 octas',SCT:'3-4 octas',BKN:'5-7 octas',OVC:'8 octas (couvert)',VV:'Vis. verticale'}; const c=t.slice(0,3); const a=+t.slice(3,6)*100; const cb=t.includes('CB')?' · CB ⚡ DANGER':t.includes('TCU')?' · TCU':''; rows.push({code:t,lbl:'Nuages',det:`${cv[c]||c} · base à ${a.toLocaleString('fr')} ft AGL${cb}`}); }
+      else if(['SKC','CLR','NCD','NSC'].includes(t)){ rows.push({code:t,lbl:'Ciel',det:'Ciel dégagé'}); }
+      else if(/^M?\d{2}\/M?\d{2}$/.test(t)){ const p=x=>x.startsWith('M')?-parseInt(x.slice(1)):+x; const[T,D]=t.split('/').map(p); rows.push({code:t,lbl:'T° / Rosée',det:`${T}°C · Td ${D}°C · écart ${T-D}°C`+(T-D<3?' ⚠ brouillard/nuage bas':'')}); }
+      else if(/^Q\d{4}$/.test(t)){ rows.push({code:t,lbl:'QNH',det:`${t.slice(1)} hPa`}); }
+      else if(t==='NOSIG'){ rows.push({code:t,lbl:'Tendance',det:'No Significant Change — aucun changement dans les 2h'}); }
+      else if(t==='AUTO'){ rows.push({code:t,lbl:'Auto',det:'Observation automatique, sans observateur'}); }
+      else if(t==='RMK'){ rows.push({code:t,lbl:'Remarques',det:'Début des remarques locales'}); }
+    }
+    return rows;
+  }
+
+  function parseTAF(raw){
+    if(!raw) return [];
+    const rows=[];
+    for(const t of raw.trim().split(/\s+/)){
+      if(!t) continue;
+      if(t==='TAF'){ rows.push({code:t,lbl:'Type',det:'Terminal Aerodrome Forecast — prévision aérodrome'}); }
+      else if(t==='AMD'){ rows.push({code:t,lbl:'Amendé',det:'TAF corrigé en cours de validité'}); }
+      else if(/^[A-Z]{4}$/.test(t)&&!['AMD','COR','NIL','BECMG','TEMPO','NOSIG'].includes(t)){ rows.push({code:t,lbl:'OACI',det:t==='NTAA'?'Tahiti-Faaa':'Aérodrome'}); }
+      else if(/^\d{6}Z$/.test(t)){ rows.push({code:t,lbl:'Émission',det:`Émis le ${t.slice(0,2)} à ${t.slice(2,4)}h${t.slice(4,6)} UTC`}); }
+      else if(/^\d{4}\/\d{4}$/.test(t)){ const[a,b]=t.split('/'); rows.push({code:t,lbl:'Validité',det:`Du ${a.slice(0,2)} à ${a.slice(2)}h UTC au ${b.slice(0,2)} à ${b.slice(2)}h UTC`}); }
+      else if(t==='BECMG'){ rows.push({code:t,lbl:'Évolution graduelle',det:'Becoming — changement PROGRESSIF et PERMANENT'}); }
+      else if(t==='TEMPO'){ rows.push({code:t,lbl:'Temporaire',det:'Temporary — changement < 30 min, < 50% de la période'}); }
+      else if(/^PROB\d{2}$/.test(t)){ rows.push({code:t,lbl:'Probabilité',det:`${t.slice(4)}% de probabilité`}); }
+      else if(/^FM\d{6}$/.test(t)){ rows.push({code:t,lbl:'Depuis',det:`From — nouveau groupe dès le ${t.slice(2,4)} à ${t.slice(4,6)}h UTC`}); }
+      else if(/^(VRB|\d{3})\d{2,3}(G\d{2,3})?(KT|MPS)$/.test(t)){ const m=t.match(/^(VRB|(\d{3}))(\d{2,3})(G(\d{2,3}))?(KT|MPS)$/); if(m) rows.push({code:t,lbl:'Vent prévu',det:`${m[1]==='VRB'?'Variable':m[2]+'°'} · ${m[3]} kt`+(m[5]?` (rafales ${m[5]} kt)`:'')}); }
+      else if(t==='9999'){ rows.push({code:t,lbl:'Vis. prévue',det:'≥ 10 km'}); }
+      else if(t==='CAVOK'){ rows.push({code:t,lbl:'CAVOK prévu',det:'Conditions optimales attendues'}); }
+      else if(/^(FEW|SCT|BKN|OVC|VV)\d{3}(CB|TCU)?$/.test(t)){ const cv={FEW:'1-2 oct.',SCT:'3-4 oct.',BKN:'5-7 oct.',OVC:'8 oct.'}; const c=t.slice(0,3); const a=+t.slice(3,6)*100; rows.push({code:t,lbl:'Nuages prévus',det:`${cv[c]||c} à ${a.toLocaleString('fr')} ft AGL`+(t.includes('CB')?' — CB ⚡':'')}); }
+      else if(['SKC','CLR','NSC','NCD'].includes(t)){ rows.push({code:t,lbl:'Ciel prévu',det:'Dégagé'}); }
+      else if(/^M?\d{2}\/M?\d{2}$/.test(t)){ const p=x=>x.startsWith('M')?-parseInt(x.slice(1)):+x; const[T,D]=t.split('/').map(p); rows.push({code:t,lbl:'T° / Rosée prévue',det:`${T}°C / Td ${D}°C`}); }
+      else if(/^Q\d{4}$/.test(t)){ rows.push({code:t,lbl:'QNH prévu',det:`${t.slice(1)} hPa`}); }
+      else if(t==='NOSIG'){ rows.push({code:t,lbl:'Pas de chgt',det:'No Significant Change prévu'}); }
+    }
+    return rows;
+  }
+
+  function buildTable(id, rows){
+    const tbl = document.getElementById(id); if(!tbl) return;
+    if(!rows.length){ tbl.innerHTML='<tr><td colspan="3" class="trad-nodata">Données indisponibles</td></tr>'; return; }
+    tbl.innerHTML = rows.map(r=>`<tr><td class="td-code">${r.code}</td><td class="td-lbl">${r.lbl}</td><td class="td-det">${r.det}</td></tr>`).join('');
+  }
+
+  // ╔═════════════════════════════════════╗
+  // ║  RENDERS SLIDES                   ║
+  // ╚═════════════════════════════════════╝
+  const MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  const JOURS=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  function todayISO(){ const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; }
+  function dateFR(iso){ const[y,m,d]=iso.split('-'); const dt=new Date(iso); return `${JOURS[dt.getDay()]} ${parseInt(d)} ${MOIS[parseInt(m)-1]} ${y}`; }
+  function dateLong(){ const n=new Date(); return `${JOURS[n.getDay()]} ${n.getDate()} ${MOIS[n.getMonth()]} ${n.getFullYear()}`; }
+
+  // ── Éphéméride NTAA ───────────────────────────────────────────────────────
+  function solarNTAA(date) {
+    // Tahiti-Faa'a : lat=-17.5516° lon=-149.6063° UTC-10
+    const LAT=-17.5516, LON=-149.6063, TZ=-10, rad=Math.PI/180;
+    const start=new Date(date.getFullYear(),0,0);
+    const doy=Math.round((date-start)/86400000);
+    const B=(360/365)*(doy-81)*rad;
+    const decl=23.45*Math.sin(B);
+    const cosH=(Math.sin(-0.8333*rad)-Math.sin(LAT*rad)*Math.sin(decl*rad))/
+               (Math.cos(LAT*rad)*Math.cos(decl*rad));
+    if(cosH<-1||cosH>1) return null;
+    const H=Math.acos(cosH)/rad;
+    const f=(279.575+0.9856*doy)*rad;
+    const ET=(-104.7*Math.sin(f)+596.2*Math.cos(f)+4*Math.sin(2*f)-
+              12.79*Math.cos(2*f)-429.3*Math.sin(3*f)-2*Math.cos(3*f)+
+              19.99*Math.sin(4*f))/3600;
+    const noon=12-(LON/15)-ET+TZ;
+    const rH=noon-H/15, sH=noon+H/15;
+    const durMin=Math.round((sH-rH)*60);
+    const fmt=h=>{const hh=Math.floor(((h%24)+24)%24),mm=Math.round((h-Math.floor(h))*60);return`${String(hh).padStart(2,'0')}h${String(mm<60?mm:59).padStart(2,'0')}`;};
+    return{rise:fmt(rH),set:fmt(sH),dur:`${Math.floor(durMin/60)}h${String(durMin%60).padStart(2,'0')}`};
+  }
+
+  function moonPhase(date) {
+    const JD=date.getTime()/86400000+2440587.5;
+    const phase=((JD-2451549.5)%29.53059+29.53059)%29.53059;
+    const idx=Math.min(Math.floor(phase/(29.53059/8)),7);
+    const emojis=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
+    const labels=['Nouvelle lune','Croissant','1er quartier','Gibbeuse croiss.','Pleine lune','Gibbeuse décr.','Dernier quartier','Croissant décr.'];
+    return emojis[idx]+' '+labels[idx];
+  }
+
+  function renderAccueil() {
+    const n=new Date();
+    document.getElementById('acc-date').textContent='Nous sommes le '+dateLong();
+    const sol=solarNTAA(n);
+    if(sol){
+      document.getElementById('e-rise').textContent=sol.rise;
+      document.getElementById('e-set').textContent=sol.set;
+      document.getElementById('e-dur').textContent=sol.dur;
+    }
+    document.getElementById('e-moon').textContent=moonPhase(n);
+  }
+
+  function renderTrad(){
+    document.getElementById('trad-metar-raw').textContent = WX.metarStr || 'METAR non disponible';
+    buildTable('trad-metar-tbl', parseMETAR(WX.metarStr));
+    document.getElementById('trad-taf-raw').textContent = WX.tafStr || 'TAF non disponible';
+    buildTable('trad-taf-tbl', parseTAF(WX.tafStr));
+  }
+
+  function renderODJ(){
+    const today=todayISO();
+    const actEl=document.getElementById('odj-activity'), emEl=document.getElementById('odj-empty'), nxtEl=document.getElementById('odj-next'), slotsEl=document.getElementById('odj-slots');
+    document.getElementById('odj-date').textContent=dateFR(today);
+    const day=FLIGHT_DAYS.find(d=>d.date===today);
+    if(day){
+      actEl.textContent=day.activity; actEl.style.display='block'; emEl.style.display='none'; nxtEl.style.display='none';
+      if(day.type==='theory'||!day.slots?.length){
+        slotsEl.innerHTML='<div class="slot-card" style="flex:0 0 auto;background:rgba(200,169,81,.08);border-color:var(--gold)"><div class="slot-h" style="font-size:.75rem;color:var(--gold-soft)">PROMOTION</div><div class="slot-e">Toute la Prépa 2026</div></div>';
+      } else {
+        slotsEl.innerHTML=day.slots.map(s=>`<div class="slot-card"><div class="slot-h">${s.h}</div><div class="slot-e">${s.e}</div></div>`).join('');
+      }
+    } else {
+      actEl.style.display='none'; slotsEl.innerHTML='';
+      const fut=FLIGHT_DAYS.filter(d=>d.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
+      if(fut.length){ emEl.textContent='Pas de session aujourd\'hui'; nxtEl.textContent=`Prochaine séance : ${dateFR(fut[0].date)} — ${fut[0].activity.slice(0,80)}…`; }
+      else { emEl.textContent='Programme Prépa PPL 2026 terminé'; nxtEl.textContent=''; }
+      emEl.style.display='block'; nxtEl.style.display='block';
+    }
+  }
+
+  function renderQDJ(){
+    const n=new Date();
+    // Rotation quotidienne : la question change chaque jour
+    const doy=Math.floor((n-new Date(n.getFullYear(),0,0))/86400000);
+    const q=QUESTIONS[doy%QUESTIONS.length];
+    document.getElementById('qdj-question').textContent=q.q;
+    const ans=document.getElementById('qdj-answer'), tmr=document.getElementById('qdj-timer');
+    if(n.getHours()>=14){ ans.textContent=q.r; ans.style.display='block'; tmr.style.display='none'; }
+    else { ans.style.display='none'; const r=`${13-n.getHours()}h${String(59-n.getMinutes()).padStart(2,'0')}`; tmr.textContent=`Réponse à 14h00 (dans ${r})`; tmr.style.display='block'; }
+  }
+
+  // ╔═════════════════════════════════════╗
+  // ║  CALCUL MENTAL                    ║
+  // ╚═════════════════════════════════════╝
+  let CALC_SET = null;
+  let calcTimer = null;
+  let calcIdx = 0;
+
+  function rng31(seed) {
+    let s = seed >>> 0;
+    return function() {
+      s = (Math.imul(s, 1664525) + 1013904223) | 0;
+      return (s >>> 0) / 4294967296;
+    };
+  }
+
+  function genCalcProblems() {
+    const d = new Date();
+    const seed = Date.now() >>> 0;
+    const r = rng31(seed);
+    // 6 opérations : +, -, ×, ÷, +, -
+    const types = ['+', '-', '×', '÷', '+', '-'];
+    return types.map(op => {
+      let a, b, c;
+      switch(op) {
+        case '+': a = 10 + Math.floor(r()*45); b = 5 + Math.floor(r()*25); c = a+b; break;
+        case '-': b = 5 + Math.floor(r()*20); c = 10 + Math.floor(r()*30); a = b+c; break;
+        case '×': a = 2 + Math.floor(r()*9);  b = 2 + Math.floor(r()*9);  c = a*b; break;
+        case '÷': b = 2 + Math.floor(r()*8);  c = 2 + Math.floor(r()*9);  a = b*c; break;
+        default:  a=1; b=1; c=2;
+      }
+      return { a, op, b, c };
+    });
+  }
+
+  function renderCalcItem(type) {
+    if (!CALC_SET || !CALC_SET.length) return;
+    const p = CALC_SET[calcIdx % CALC_SET.length];
+    const n = calcIdx + 1, tot = CALC_SET.length;
+    if (type === 'calc') {
+      const el = document.getElementById('calc-expr');
+      if (el) el.innerHTML = `${p.a}&thinsp;<span class="calc-op">${p.op}</span>&thinsp;${p.b}&thinsp;<span class="calc-q">=&thinsp;?</span>`;
+      const ci = document.getElementById('calc-idx');
+      if (ci) ci.textContent = `${n} / ${tot}`;
+    } else {
+      const el = document.getElementById('calcr-expr');
+      if (el) el.innerHTML = `${p.a}&thinsp;<span class="calc-op">${p.op}</span>&thinsp;${p.b}&thinsp;<span class="calc-eq">=</span>&thinsp;<span class="calc-res">${p.c}</span>`;
+      const ci = document.getElementById('calcr-idx');
+      if (ci) ci.textContent = `${n} / ${tot}`;
+    }
+  }
+
+  // ╔═════════════════════════════════════╗
+  // ║  PDF — rendu pdf.js               ║
+  // ╚═════════════════════════════════════╝
+  async function showPDF(s) {
+    const pdfSlide  = OVERLAYS.pdf;
+    const pdfCanvas = document.getElementById('pdf-canvas');
+    const pdfErr    = document.getElementById('pdf-error');
+    const spinner   = document.getElementById('pdf-spinner');
+
+    pdfSlide.classList.add('on');
+    pdfCanvas.style.display = 'none';
+    pdfErr.style.display    = 'none';
+    spinner.style.display   = 'block';
+    spinner.textContent     = 'Chargement de la carte…';
+
+    const produits = (WX.aeroweb || {}).produits || [];
+    const p = produits.find(x =>
+      x.type === s.pdfType && x.pdf_b64 &&
+      (!s.pdfLabel || x.libelle.includes(s.pdfLabel))
+    );
+
+    if (!p) {
+      spinner.style.display = 'none';
+      pdfErr.textContent = `${s.label}\n\nFetch automatique en cours — disponible dans quelques minutes`;
+      pdfErr.style.display = 'block';
+      return;
+    }
+    if (typeof pdfjsLib === 'undefined') {
+      spinner.style.display = 'none';
+      pdfErr.textContent = 'pdf.js non chargé — vérifier la connexion internet';
+      pdfErr.style.display = 'block';
+      return;
+    }
+
+    try {
+      const raw   = atob(p.pdf_b64);
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+
+      const pdf  = await pdfjsLib.getDocument({data: bytes}).promise;
+      const page = await pdf.getPage(1);
+
+      const stage  = document.getElementById('stage');
+      const stageW = stage.clientWidth;
+      const stageH = stage.clientHeight;
+
+      const vp0 = page.getViewport({scale:1});
+      const pw  = vp0.width, ph = vp0.height;
+
+      const cL = s.pdfCropLeft   || 0;
+      const cT = s.pdfCropTop    || 0;
+      const cR = s.pdfCropRight  || 0;
+      const cB = s.pdfCropBottom || 0;
+
+      const visW  = pw * (1 - cL - cR);
+      const visH  = ph * (1 - cT - cB);
+      const scale = Math.min(stageW / visW, stageH / visH);
+
+      const offscreen  = document.createElement('canvas');
+      offscreen.width  = Math.round(pw * scale);
+      offscreen.height = Math.round(ph * scale);
+      const vp   = page.getViewport({scale});
+      const octx = offscreen.getContext('2d');
+      octx.fillStyle = '#FFFFFF';
+      octx.fillRect(0, 0, offscreen.width, offscreen.height);
+      await page.render({canvasContext: octx, viewport: vp}).promise;
+
+      const sx = Math.round(cL * pw * scale);
+      const sy = Math.round(cT * ph * scale);
+      const sw = Math.round(visW * scale);
+      const sh = Math.round(visH * scale);
+
+      pdfCanvas.width  = sw;
+      pdfCanvas.height = sh;
+      const ctx = pdfCanvas.getContext('2d');
+      ctx.drawImage(offscreen, sx, sy, sw, sh, 0, 0, sw, sh);
+
+      spinner.style.display   = 'none';
+      pdfCanvas.style.display = 'block';
+    } catch(e) {
+      spinner.style.display = 'none';
+      pdfErr.textContent    = `Erreur de rendu : ${e.message}`;
+      pdfErr.style.display  = 'block';
+    }
+  }
+
+  // ╔═════════════════════════════════════╗
+  // ║  MOTEUR CAROUSEL                  ║
+  // ╚═════════════════════════════════════╝
+  let idx=0, playing=true, rafId=null, t0=0, dur=12000;
+
+  const frame   = document.getElementById('frame');
+  const lbl     = document.getElementById('slide-lbl');
+  const ctr     = document.getElementById('ctr');
+  const dotsEl  = document.getElementById('dots');
+  const fill    = document.getElementById('prog-fill');
+  const btnPlay = document.getElementById('btn-play');
+  const btnFs   = document.getElementById('btn-fs');
+  const clockEl = document.getElementById('clock');
+
+  const OVERLAYS = {
+    accueil : document.getElementById('accueil-slide'),
+    meteo   : document.getElementById('meteo-slide'),
+    trad    : document.getElementById('trad-slide'),
+    odj     : document.getElementById('odj-slide'),
+    qdj     : document.getElementById('qdj-slide'),
+    rappels : document.getElementById('rappels-slide'),
+    espaces : document.getElementById('espaces-slide'),
+    vmc     : document.getElementById('vmc-slide'),
+    pdf     : document.getElementById('pdf-slide'),
+    calc    : document.getElementById('calc-slide'),
+    calcr   : document.getElementById('calcr-slide'),
+  };
+
+  (function tick(){ const n=new Date(); clockEl.textContent=[n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':'); setTimeout(tick,1000); })();
+
+  function buildDots(){ dotsEl.innerHTML=''; SLIDES.forEach((s,i)=>{ const d=document.createElement('div'); d.className='dot'+(i===idx?' active':''); d.title=s.label; d.onclick=()=>goTo(i); dotsEl.appendChild(d); }); }
+  function refreshDots(){ dotsEl.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===idx)); }
+
+  function showSlide(i){
+    // Arrêter le timer calcul si on quitte ces slides
+    if (calcTimer) { clearInterval(calcTimer); calcTimer = null; }
+
+    const s=SLIDES[i];
+    lbl.textContent=s.label; ctr.textContent=`${i+1}/${SLIDES.length}`; refreshDots();
+    Object.values(OVERLAYS).forEach(el=>el.classList.remove('on'));
+    if(s.type==='pdf'){
+      frame.style.visibility='hidden'; frame.src='about:blank';
+      showPDF(s);
+    } else if(s.type==='url'){
+      frame.style.visibility='visible';
+      frame.removeAttribute('srcdoc'); frame.src=s.url;
+    } else {
+      frame.style.visibility='hidden'; frame.removeAttribute('srcdoc'); frame.src='about:blank';
+      const ov=OVERLAYS[s.type]; if(ov) ov.classList.add('on');
+      if(s.type==='accueil') renderAccueil();
+      if(s.type==='meteo')   renderWXIllus();
+      if(s.type==='trad')    renderTrad();
+      if(s.type==='odj')     renderODJ();
+      if(s.type==='qdj')     renderQDJ();
+      if(s.type==='calc'){
+        CALC_SET = genCalcProblems();
+        calcIdx = 0;
+        renderCalcItem('calc');
+        calcTimer = setInterval(()=>{ calcIdx=(calcIdx+1)%CALC_SET.length; renderCalcItem('calc'); }, 5000);
+      }
+      if(s.type==='calcr'){
+        if(!CALC_SET) CALC_SET = genCalcProblems();
+        calcIdx = 0;
+        renderCalcItem('calcr');
+        calcTimer = setInterval(()=>{ calcIdx=(calcIdx+1)%CALC_SET.length; renderCalcItem('calcr'); }, 3000);
+      }
+    }
+  }
+
+  function goTo(i){ idx=((i%SLIDES.length)+SLIDES.length)%SLIDES.length; showSlide(idx); playing?startProg():(fill.style.width='0%'); }
+  const next=()=>goTo(idx+1), prev=()=>goTo(idx-1);
+
+  function startProg(){
+    if(rafId){cancelAnimationFrame(rafId);rafId=null;}
+    dur=SLIDES[idx].duration||12000; t0=performance.now(); fill.style.width='0%';
+    (function tick(now){ const p=Math.min(100,((now-t0)/dur)*100); fill.style.width=p+'%'; p>=100?next():(rafId=requestAnimationFrame(tick)); })(t0);
+  }
+  function stopProg(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} }
+
+  function togglePlay(){ playing=!playing; btnPlay.textContent=playing?'⏸':'▶'; btnPlay.classList.toggle('paused',!playing); playing?startProg():stopProg(); }
+  function enterFs(){ document.documentElement.requestFullscreen().catch(()=>{}); btnFs.textContent='✕'; }
+  function exitFs(){ document.exitFullscreen().catch(()=>{}); btnFs.textContent='⛶'; }
+  function toggleFs(){ document.fullscreenElement?exitFs():enterFs(); }
+  document.addEventListener('fullscreenchange',()=>{ if(!document.fullscreenElement) btnFs.textContent='⛶'; });
+
+  document.addEventListener('keydown', e => {
+    switch(e.key){
+      case 'ArrowRight': e.preventDefault(); next(); break;
+      case 'ArrowLeft':  e.preventDefault(); prev(); break;
+      case ' ':          e.preventDefault(); togglePlay(); break;
+      case 'f': case 'F': toggleFs(); break;
+      case 'Escape': if(document.fullscreenElement){e.preventDefault();exitFs();} break;
+    }
+  });
+
+  document.getElementById('btn-prev').onclick = prev;
+  document.getElementById('btn-next').onclick = next;
+  btnPlay.onclick = togglePlay;
+  btnFs.onclick   = toggleFs;
+  document.getElementById('app').setAttribute('tabindex','0');
+  document.getElementById('app').focus();
+
+  buildDots();
+  showSlide(0);
+  startProg();
+});
+</script>
+</body>
+</html>

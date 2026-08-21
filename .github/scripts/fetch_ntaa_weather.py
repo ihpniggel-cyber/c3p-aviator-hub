@@ -22,6 +22,7 @@ Source PDFs : aviation.meteo.fr (Aeroweb — authentification tahiti/tahiti).
 Écrit data/weather-ntaa.json à la racine du dépôt.
 """
 import base64
+import http.client
 import json
 import os
 import re
@@ -29,7 +30,15 @@ import time
 import urllib.request
 from datetime import datetime, timezone
 
-HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; C3P-Weather-Bot/1.0; +https://github.com/ihpniggel-cyber)'}
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (compatible; C3P-Weather-Bot/1.0; +https://github.com/ihpniggel-cyber)',
+    # Certains serveurs (dont metarcentral.com sur la page NOTAM) coupent la connexion
+    # avant d'avoir envoyé le dernier chunk gzip annoncé, ce qui déclenche une
+    # http.client.IncompleteRead côté urllib. Demander explicitement une réponse non
+    # compressée évite ce mode de défaillance à la source plutôt que de le contourner
+    # après coup.
+    'Accept-Encoding': 'identity',
+}
 OUTPUT_PATH = 'data/weather-ntaa.json'
 
 AEROWEB_LOGIN_URL = 'https://aviation.meteo.fr/login.php'
@@ -40,16 +49,58 @@ AWC_METAR_URL = 'https://aviationweather.gov/api/data/metar?ids=NTAA&format=json
 AWC_TAF_URL   = 'https://aviationweather.gov/api/data/taf?ids=NTAA&format=json'
 
 
-def fetch(url):
-    req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=20) as r:
-        return r.read().decode('utf-8', errors='replace')
+def fetch(url, retries=2):
+    """
+    GET avec tolérance aux coupures de connexion en cours de transfert.
+
+    Contexte : la page NOTAM de metarcentral.com déclenchait systématiquement
+    http.client.IncompleteRead (ex: "73247 bytes read" sur un Content-Length annoncé
+    plus grand). La page elle-même est valide et bien formée — vérifié le 21/08/2026,
+    ce n'est pas une refonte du site (contrairement au cas METAR/TAF). C'est une
+    coupure réseau/serveur en fin de transfert.
+    Stratégie : 1) forcer une réponse non compressée (cf. HEADERS) pour éliminer la
+    cause la plus fréquente de ce symptôme ; 2) si l'exception survient quand même,
+    réessayer quelques fois ; 3) si elle persiste, exploiter le contenu partiel
+    (`e.partial`) plutôt que d'abandonner — un NOTAM tronqué en fin de page est encore
+    largement exploitable par le regex d'extraction, qui ignore simplement l'entrée
+    incomplète en bout de texte.
+    """
+    last_err = None
+    for attempt in range(retries + 1):
+        req = urllib.request.Request(url, headers=HEADERS)
+        try:
+            with urllib.request.urlopen(req, timeout=25) as r:
+                return r.read().decode('utf-8', errors='replace')
+        except http.client.IncompleteRead as e:
+            if e.partial:
+                return e.partial.decode('utf-8', errors='replace')
+            last_err = e
+        except Exception as e:
+            last_err = e
+        if attempt < retries:
+            time.sleep(2)
+    raise last_err
 
 
-def fetch_json(url):
-    req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=20) as r:
-        return json.loads(r.read().decode('utf-8', errors='replace'))
+def fetch_json(url, retries=2):
+    last_err = None
+    for attempt in range(retries + 1):
+        req = urllib.request.Request(url, headers=HEADERS)
+        try:
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return json.loads(r.read().decode('utf-8', errors='replace'))
+        except http.client.IncompleteRead as e:
+            if e.partial:
+                try:
+                    return json.loads(e.partial.decode('utf-8', errors='replace'))
+                except json.JSONDecodeError:
+                    pass
+            last_err = e
+        except Exception as e:
+            last_err = e
+        if attempt < retries:
+            time.sleep(2)
+    raise last_err
 
 
 def fetch_metar_awc():

@@ -1,7 +1,23 @@
 """
 C3P - Récupération automatique METAR/TAF/NOTAM + PDFs Aeroweb pour NTAA (Tahiti-Faa'a)
 Exécuté par GitHub Actions toutes les 15 minutes.
-Source METAR/TAF/NOTAM : metarcentral.com (agrégateur public NOAA/NWS).
+
+Source METAR/TAF : aviationweather.gov (API officielle NOAA/NWS Aviation Weather Center,
+  format JSON documenté, couverture mondiale y compris NTAA — confirmé).
+  -----------------------------------------------------------------------------------
+  ⚠️ CHANGEMENT (voir changelog) : la source METAR/TAF était auparavant metarcentral.com,
+  scrapée par regex sur le HTML de la page. Deux pannes distinctes et cumulatives ont été
+  diagnostiquées le 21/08/2026 :
+    1. metarcentral.com a refondu son site ; le nouveau template affiche désormais
+       "Loading weather data..." — les données METAR/TAF semblent chargées en JS après coup,
+       donc invisibles à un fetch HTML statique (urllib), regex ou pas.
+    2. Au moment du diagnostic, le site renvoyait en plus une page d'erreur PHP/Redis
+       fatale (RedisException MISCONF), donc indisponible même pour un navigateur.
+  On abandonne donc ce site comme source METAR/TAF au profit de l'API officielle AWC,
+  qui renvoie du JSON structuré (pas de parsing fragile) et n'a aucune dépendance à la
+  mise en page d'un site tiers. Le NOTAM reste scrapé sur metarcentral.com (page distincte,
+  non vérifiée comme touchée par les mêmes pannes) ; si elle casse à son tour, l'erreur
+  sera loggée dans "errors" comme avant — jamais de correction silencieuse.
 Source PDFs : aviation.meteo.fr (Aeroweb — authentification tahiti/tahiti).
 Écrit data/weather-ntaa.json à la racine du dépôt.
 """
@@ -20,6 +36,9 @@ AEROWEB_LOGIN_URL = 'https://aviation.meteo.fr/login.php'
 AEROWEB_DOSSIER_URL = 'https://aviation.meteo.fr/dossier_personnalise_show_html.php'
 AEROWEB_ID = '104767'
 
+AWC_METAR_URL = 'https://aviationweather.gov/api/data/metar?ids=NTAA&format=json&hours=2'
+AWC_TAF_URL   = 'https://aviationweather.gov/api/data/taf?ids=NTAA&format=json'
+
 
 def fetch(url):
     req = urllib.request.Request(url, headers=HEADERS)
@@ -27,21 +46,37 @@ def fetch(url):
         return r.read().decode('utf-8', errors='replace')
 
 
+def fetch_json(url):
+    req = urllib.request.Request(url, headers=HEADERS)
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return json.loads(r.read().decode('utf-8', errors='replace'))
+
+
+def fetch_metar_awc():
+    """METAR NTAA via l'API officielle aviationweather.gov (JSON, pas de parsing HTML)."""
+    data = fetch_json(AWC_METAR_URL)
+    if isinstance(data, list) and data:
+        raw = data[0].get('rawOb')
+        if raw:
+            return raw.strip()
+    return None
+
+
+def fetch_taf_awc():
+    """TAF NTAA via l'API officielle aviationweather.gov (JSON, pas de parsing HTML)."""
+    data = fetch_json(AWC_TAF_URL)
+    if isinstance(data, list) and data:
+        raw = data[0].get('rawTAF') or data[0].get('rawTaf')
+        if raw:
+            return raw.strip()
+    return None
+
+
 def strip_tags(html):
     text = re.sub(r'<[^>]*>', ' ', html)
     text = text.replace('&amp;', '&')
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
-
-
-def extract_metar(text):
-    m = re.search(r'METAR\s+NTAA\s+\d{6}Z.*?(?=\s(?:Clouds|Weather Briefing))', text)
-    return m.group(0).strip() if m else None
-
-
-def extract_taf(text):
-    m = re.search(r'TAF\s+NTAA\s+\d{6}Z.*?(?=\s(?:Detailed TAF Table|Forecast Periods|Upcoming Changes))', text)
-    return m.group(0).strip() if m else None
 
 
 def extract_notams(text):
@@ -227,7 +262,7 @@ def fetch_aeroweb_ntaa():
 def main():
     result = {
         'updated_utc': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'source': 'metarcentral.com',
+        'source': 'aviationweather.gov (NOAA/AWC) — METAR/TAF ; metarcentral.com — NOTAM',
         'metar_raw': None,
         'taf_raw': None,
         'notams': [],
@@ -236,18 +271,16 @@ def main():
     }
 
     try:
-        metar_page = strip_tags(fetch('https://metarcentral.com/airport/NTAA'))
-        result['metar_raw'] = extract_metar(metar_page)
+        result['metar_raw'] = fetch_metar_awc()
         if not result['metar_raw']:
-            result['errors'].append('metar: motif non trouvé dans la page (structure du site a peut-être changé)')
+            result['errors'].append('metar: aviationweather.gov n\'a renvoyé aucune donnée pour NTAA')
     except Exception as e:
         result['errors'].append('metar: ' + str(e))
 
     try:
-        taf_page = strip_tags(fetch('https://metarcentral.com/airport/NTAA/taf'))
-        result['taf_raw'] = extract_taf(taf_page)
+        result['taf_raw'] = fetch_taf_awc()
         if not result['taf_raw']:
-            result['errors'].append('taf: motif non trouvé dans la page (structure du site a peut-être changé)')
+            result['errors'].append('taf: aviationweather.gov n\'a renvoyé aucune donnée pour NTAA')
     except Exception as e:
         result['errors'].append('taf: ' + str(e))
 

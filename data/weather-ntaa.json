@@ -1,14 +1,13 @@
 {
-  "updated_utc": "2026-09-05T13:01:53Z",
+  "updated_utc": "2026-09-05T16:01:56Z",
   "source": "aviationweather.gov (NOAA/AWC) — METAR/TAF ; metarcentral.com — NOTAM",
-  "metar_raw": "METAR NTAA 051230Z AUTO 10004KT 070V130 CAVOK 25/20 Q1013 NOSIG",
+  "metar_raw": "METAR NTAA 051530Z AUTO VRB02KT CAVOK 25/19 Q1013 NOSIG",
   "taf_raw": "TAF NTAA 051100Z 0512/0618 VRB03KT 9999 FEW023 BKN100 PROB40 TEMPO 0522/0604 06015KT",
   "notams": [],
   "aeroweb_ntaa": {
-    "updated_utc": "2026-09-05T13:01:59Z",
+    "updated_utc": "2026-09-05T16:02:02Z",
     "produits": [],
-    "error": "Authentification échouée (URL: https://aviation.meteo.fr/login.php, titre: AEROWEB)",
-    "debug_html": "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\"><html><head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=ISO-8859-1\">\n<title>AEROWEB</title>\n<meta name=\"description\" content=\"\">\n<meta name=\"keywords\" content=\"\">\n<meta http-equiv=\"X-UA-Compatible\" content=\"IE=EmulateIE7\">\n<link type=\"text/css\" rel=\"stylesheet\" href=\"./ressources/common.css\">\n<link type=\"text/css\" rel=\"stylesheet\" href=\"./ressources/login.css\">\n\n<script src=\"./js/md5.js\" language=\"javascript\"></script>\n\n<link rel=\"stylesheet\" type=\"text/css\" href=\"js/jquery/css/jquery-ui-1.8.2.custom.css\">\n<script type=\"text/javascript\" src=\"js/jquery/js/jquery-1.4.2.min.js\"></script>\n<script type=\"text/javascript\" src=\"js/jquery/js/jquery-ui-1.8.2.custom.min.js\"></script>\n<script type=\"text/javascript\" src=\"js/vigilance.js\"></script>\n<script>\n\tjQuery.noConflict();\n\tfunction tolangue() \n\t{\n\t\tvar url = \"login.php?lang=\" + \"gb\";\n\t\twindow.open(url , '_self');\n\t}\n\n\tfunction valid()\n\t{\n\t\tjQuery('#errcode').attr('innerHTML', \"\");\n\t\tvar encode = String(md5(jQuery('#password').val()));\n\t\tvar url = './ajax/login_valid.php';\n\t\tvar parametres = 'login=' + escape(jQuery('#login').val()) + '&password=' + encode;\n\t\t\n\t\tjQuery.ajax(\n  \t\t{\n  \t  \t\turl:url,\n   \t \t\ttype: 'POST',\n   \t \t\tdata: parametres,\n\t\t\tsuccess: function(transport)\n\t\t\t{\n\t\t\t\tvar response = transport ;\n      \t\t\tif (response == 'ok') \n      \t\t\t{\n      \t\t\t\tdocument.location.href = \"./accueil.php\";\n      \t\t\t}\n      \t\t\telse\n      \t\t\t{\n\t      \t\t\tjQuery('#errcode').attr('innerHTML', response) ;\n    \t\t\t}\n    \t\t},\n    \t\terror: function() { alert(\"ajax error\"); }\n  \t\t});\n\t}\n\n\tvar local_storage_exist=false;\n\tfunction init()\n\t{\n\t\tif(typeof localStorage!='undefined') {local_storage_exist=true;}\n\n\t\tvar from_mobile=0;\nvar from_choix_mobile=0;\n\t\t\t\n\t\tif (local_storage_exist)\n\t\t{\n\n\t\t\tif (!localStorage.getItem('aeroweb_sitemobile_preferred') && from_choix_mobile=='0')\n\t\t\t{\n\t\t\t\tif (navigator.userAgent.match(/(android|ip"
+    "error": "Page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://aviation.meteo.fr/login.php\", waiting until \"domcontentloaded\"\n"
   },
   "errors": [
     "notam: <urlopen error [Errno 111] Connection refused>"

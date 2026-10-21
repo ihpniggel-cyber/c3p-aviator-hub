@@ -1,11 +1,11 @@
 {
-  "updated_utc": "2026-10-21T19:26:26Z",
+  "updated_utc": "2026-10-21T22:33:16Z",
   "source": "aviationweather.gov (NOAA/AWC) — METAR/TAF ; metarcentral.com — NOTAM",
-  "metar_raw": "METAR NTAA 211900Z AUTO 19017KT 9999 BKN030 26/17 Q1013 TEMPO 20015G25KT",
+  "metar_raw": "METAR NTAA 212200Z AUTO 19018KT CAVOK 27/17 Q1012 TEMPO 20015G25KT",
   "taf_raw": "TAF NTAA 211700Z 2118/2224 18013KT 9999 SCT026 BKN032 TEMPO 2120/2203 20015G25KT BECMG 2217/2219 VRB06KT",
   "notams": [],
   "aeroweb_ntaa": {
-    "updated_utc": "2026-10-21T19:26:34Z",
+    "updated_utc": "2026-10-21T22:33:21Z",
     "produits": [],
     "error": "Page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://aviation.meteo.fr/login.php\", waiting until \"domcontentloaded\"\n"
   },
